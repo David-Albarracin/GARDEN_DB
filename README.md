@@ -1,10 +1,8 @@
 # GARDEN DATA BASE 
 
-
-
 #### Diagrama Entidad Relación
 
-![diagrama]()
+![DIAGRAMA](https://raw.githubusercontent.com/David-Albarracin/GARDEN_DB/main/garden.png)
 
 
 
@@ -366,7 +364,7 @@ ENGINE = InnoDB;
 
 Datos Extraídos de [DATOS GARDEN DATA BASE](https://gist.github.com/josejuansanchez/c408725e848afd64dd9a20ab37fba8c9);
 
-Datos Formateados [DATOS FORMATEADOS]([David-Albarracin/GARDEN_DB (github.com)](https://github.com/David-Albarracin/GARDEN_DB/calls_procedures.sql))
+Datos Formateados [CALL PROCEDURES](https://github.com/David-Albarracin/GARDEN_DB/blob/main/calls_procedures.sql)
 
 #### FUNCIONES Y PROCEDIMIENTOS
 
@@ -822,12 +820,16 @@ DELIMITER ;
 
 ````
 
-###### DESPUES DE CREAR LOS PROCEDIMIENTOS EJECUTAMOS EL ARCHIVO CALL_PROCEDURES PARA PODER AGREGAR DATOS DE PRUEBA
+###### DESPUES DE CREAR LOS PROCEDIMIENTOS EJECUTAMOS EL ARCHIVO CALL_PROCEDURES PARA PODER AGREGAR DATOS DE PRUEBA [Click]([GARDEN_DB/calls_procedures.sql at main · David-Albarracin/GARDEN_DB (github.com)](https://github.com/David-Albarracin/GARDEN_DB/blob/main/calls_procedures.sql))
 
 #### VISTAS PARA FACILITAR BÚSQUEDAS 
 
 ```sql
-
+CREATE VIEW resumen_productos AS
+SELECT p.nombre, p.precio, SUM(v.cantidad) AS ventas
+FROM productos p
+LEFT JOIN ventas v ON p.id_producto = v.id_producto
+GROUP BY p.id_producto;
 ```
 
 

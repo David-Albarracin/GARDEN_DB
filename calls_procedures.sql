@@ -1,3 +1,5 @@
+USE garden;
+
 -- Datos
 CALL add_oficina ('BCN-ES','Barcelona','España','Barcelona','08019','+34 93 3561182','Avenida Diagonal, 38','3A escalera Derecha');
 CALL add_oficina ('BOS-USA','Boston','EEUU','MA','02108','+1 215 837 0825','1550 Court Place','Suite 102');
