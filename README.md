@@ -275,7 +275,7 @@ CREATE TABLE IF NOT EXISTS `garden`.`phone_number` (
   `updated_at` DATETIME NULL DEFAULT NOW(),
   `who_is` VARCHAR(45) NULL,
   `office_id` VARCHAR(10) NULL DEFAULT NULL,
-  `employee_employee_id` INT(11) NULL DEFAULT NULL,
+  `employee_id` INT(11) NULL DEFAULT NULL,
   `provider_id` INT NULL DEFAULT NULL,
   `customer_contact_id` INT NULL DEFAULT NULL,
   PRIMARY KEY (`phone_number_id`),
@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS `garden`.`phone_number` (
     FOREIGN KEY (`office_id`)
     REFERENCES `garden`.`office` (`office_id`),
   CONSTRAINT `fk_phone_number_employee1`
-    FOREIGN KEY (`employee_employee_id`)
+    FOREIGN KEY (`employee_id`)
     REFERENCES `garden`.`employee` (`employee_id`),
   CONSTRAINT `fk_phone_number_provider1`
     FOREIGN KEY (`provider_id`)
@@ -353,6 +353,7 @@ CREATE TABLE IF NOT EXISTS `garden`.`pay` (
     FOREIGN KEY (`customer_id`)
     REFERENCES `garden`.`customer` (`customer_id`))
 ENGINE = InnoDB;
+
 
 
 
@@ -507,10 +508,10 @@ BEGIN
    		codigo_empleado,
    		nombre,
    		null,
-   		null,
-   		null,
+   		apellido1,
+   		apellido2,
    		extension,
-   		null,
+   		email,
    		codigo_jefe,
    		get_rol_id,
    		codigo_oficina
@@ -711,7 +712,7 @@ BEGIN
 			'GARDEN LA PERLA',
 			NULL
 		);
-		SET get_provider_id = LAST_INSERT_ID(); 
+		SET get_provider_id = 1;
 	END IF;
 	
 	
@@ -825,11 +826,32 @@ DELIMITER ;
 #### VISTAS PARA FACILITAR BÚSQUEDAS 
 
 ```sql
-CREATE VIEW resumen_productos AS
-SELECT p.nombre, p.precio, SUM(v.cantidad) AS ventas
-FROM productos p
-LEFT JOIN ventas v ON p.id_producto = v.id_producto
-GROUP BY p.id_producto;
+-- VISTA PARA FACILITAR LAS BUSQUEDAS DE LOS CLIENTES
+USE garden;
+
+DROP VIEW IF EXISTS customer_meta;
+
+CREATE VIEW customer_meta AS
+SELECT 
+	cu.customer_id AS 'cliente_id',
+	cu.customer_name AS 'cliente_nombre',
+	c.city_name AS 'ciudad',
+	pn.phone_number AS 'telefono',
+	a.address_line_1 AS 'direccion',
+	e.employee_first_name AS 'empleado_nombre'
+FROM 
+	customer AS cu
+INNER JOIN
+	address AS a ON a.customer_id = cu.customer_id
+INNER JOIN
+	city AS c ON c.city_id = a.city_id
+INNER JOIN
+	customer_contact AS cc ON cc.customer_id = cu.customer_id
+INNER JOIN
+	phone_number AS pn ON pn.customer_contact_id = cc.customer_contact_id
+INNER JOIN
+	employee AS e ON e.employee_id = cu.employee_id;
+
 ```
 
 
@@ -839,42 +861,212 @@ GROUP BY p.id_producto;
 1. Devuelve un listado con el código de oficina y la ciudad donde hay oficinas.
 
    ```sql
+   SELECT 
+   	o.office_id,
+   	c.city_name 
+   FROM 
+   	office AS o, 
+   	city AS c
+   WHERE 
+   	c.city_id = o.city_id;
+   	
+   +-----------+----------------------+
+   | office_id | city_name            |
+   +-----------+----------------------+
+   | BCN-ES    | Barcelona            |
+   | BOS-USA   | Boston               |
+   | LON-UK    | Londres              |
+   | MAD-ES    | Madrid               |
+   | PAR-FR    | Paris                |
+   | SFC-USA   | San Francisco        |
+   | SYD-AU    | Sydney               |
+   | TAL-ES    | Talavera de la Reina |
+   | TOK-JP    | Tokyo                |
+   +-----------+----------------------+
+   9 rows in set (0,00 sec)
+   
    ```
 
 2. Devuelve un listado con la ciudad y el teléfono de las oficinas de España.
 
    ```sql
+   SELECT 
+   	o.office_id,
+   	c.city_name,
+   	o.office_phone_number
+   FROM 
+   	office AS o
+   INNER JOIN
+   	city AS c ON c.city_id = o.city_id
+   INNER JOIN
+   	region AS r ON c.region_id = r.region_id
+   INNER JOIN
+   	country AS co ON co.country_id = r.country_id
+   WHERE 
+   	co.country_name = 'España';
+   	
+   +-----------+----------------------+---------------------+
+   | office_id | city_name            | office_phone_number |
+   +-----------+----------------------+---------------------+
+   | BCN-ES    | Barcelona            | +34 93 3561182      |
+   | MAD-ES    | Madrid               | +34 91 7514487      |
+   | TAL-ES    | Talavera de la Reina | +34 925 867231      |
+   +-----------+----------------------+---------------------+
+   
    ```
 
 3. Devuelve un listado con el nombre, apellidos y email de los empleados cuyo
    jefe tiene un código de jefe igual a 7.
 
    ```sql
+   
+   SELECT 
+   	e.employee_first_name,
+   	e.employee_first_surname,
+   	e.employee_last_surname 
+   FROM
+   	employee AS e 
+   WHERE
+   	e.boss_id = 7;
+   	
+   +---------------------+------------------------+-----------------------+
+   | employee_first_name | employee_first_surname | employee_last_surname |
+   +---------------------+------------------------+-----------------------+
+   | Mariano             | López                  | Murcia                |
+   | Lucio               | Campoamor              | Martín                |
+   | Hilario             | Rodriguez              | Huertas               |
+   +---------------------+------------------------+-----------------------+
+   
    ```
-
+   
 4. Devuelve el nombre del puesto, nombre, apellidos y email del jefe de la
    empresa.
 
    ```sql
+   SELECT 
+   	e.employee_first_name AS 'Nombre',
+   	e.employee_first_surname AS 'Apellido',
+   	e.employee_email AS 'Email'
+   FROM
+   	employee AS e 
+   INNER JOIN
+   	rol AS r ON r.rol_id = e.rol_id
+   WHERE 
+   	r.rol_name = 'Director General';
+   	
+   +--------+----------+----------------------+
+   | Nombre | Apellido | Email                |
+   +--------+----------+----------------------+
+   | Marcos | Magaña   | marcos@jardineria.es |
+   +--------+----------+----------------------+
+   
    ```
-
+   
 5. Devuelve un listado con el nombre, apellidos y puesto de aquellos
    empleados que no sean representantes de ventas.
 
    ```sql
+   SELECT 
+   	e.employee_first_name AS 'Nombre',
+   	e.employee_first_surname AS 'Apellido',
+   	r.rol_name AS 'Rol'
+   FROM
+   	employee AS e 
+   INNER JOIN
+   	rol AS r ON r.rol_id = e.rol_id
+   WHERE 
+   	r.rol_name != 'Representante Ventas'
+   ORDER BY 
+   	r.rol_name ASC;
+   	
+   +----------+------------+-----------------------+
+   | Nombre   | Apellido   | Rol                   |
+   +----------+------------+-----------------------+
+   | Marcos   | Magaña     | Director General      |
+   | Carlos   | Soria      | Director Oficina      |
+   | Emmanuel | Magaña     | Director Oficina      |
+   | Francois | Fignon     | Director Oficina      |
+   | Michael  | Bolton     | Director Oficina      |
+   | Hilary   | Washington | Director Oficina      |
+   | Nei      | Nishikori  | Director Oficina      |
+   | Amy      | Johnson    | Director Oficina      |
+   | Kevin    | Fallmer    | Director Oficina      |
+   | Maria    | Solís      | Secretaria            |
+   | Ruben    | López      | Subdirector Marketing |
+   | Alberto  | Soria      | Subdirector Ventas    |
+   +----------+------------+-----------------------+
+   
    ```
-
+   
 6. Devuelve un listado con el nombre de los todos los clientes españoles.
 
    ```sql
+   SELECT 
+   	cu.customer_name,
+   	co.country_name
+   FROM 
+   	customer AS cu
+   INNER JOIN
+   	address AS a ON a.customer_id  = cu.customer_id 
+   INNER JOIN
+   	city AS c ON c.city_id = a.city_id
+   INNER JOIN
+   	region AS r ON c.region_id = r.region_id
+   INNER JOIN
+   	country AS co ON co.country_id = r.country_id
+   WHERE 
+   	co.country_name = 'España';
+   	
+   +--------------------------------+--------------+
+   | customer_name                  | country_name |
+   +--------------------------------+--------------+
+   | Americh Golf Management SL     | España       |
+   | El Prat                        | España       |
+   | Flowers, S.A                   | España       |
+   | Beragua                        | España       |
+   | Club Golf Puerta del hierro    | España       |
+   | Naturagua                      | España       |
+   | DaraDistribuciones             | España       |
+   | Madrileña de riegos            | España       |
+   | Dardena S.A.                   | España       |
+   | Jardin de Flores               | España       |
+   | Naturajardin                   | España       |
+   | Jardines y Mansiones Cactus SL | España       |
+   | Jardinerías Matías SL          | España       |
+   | Flores S.L.                    | España       |
+   | Lasas S.A.                     | España       |
+   | Lasas S.A.                     | España       |
+   | Flores Marivi                  | España       |
+   | Fuenla City                    | España       |
+   | Jardineria Sara                | España       |
+   | Campohermoso                   | España       |
+   | Camunas Jardines S.L.          | España       |
+   | Vivero Humanes                 | España       |
+   | Top Campo                      | España       |
+   | Agrojardin                     | España       |
+   +--------------------------------+--------------+
+   	
    ```
 
 7. Devuelve un listado con los distintos estados por los que puede pasar un
    pedido.
 
    ```sql
+   SELECT DISTINCT 
+   	o.status 
+   FROM 
+   	`order` AS o;
+   	
+   +-----------+
+   | status    |
+   +-----------+
+   | Entregado |
+   | Rechazado |
+   | Pendiente |
+   +-----------+
+   	
    ```
-
+   
 8. Devuelve un listado con el código de cliente de aquellos clientes que
    realizaron algún pago en 2008. Tenga en cuenta que deberá eliminar
    aquellos códigos de cliente que aparezcan repetidos. Resuelva la consulta:
@@ -884,16 +1076,84 @@ GROUP BY p.id_producto;
    • Sin utilizar ninguna de las funciones anteriores.
 
    ```sql
+   -- Utilizando la función YEAR de MySQL.
+   SELECT DISTINCT 
+   	c.customer_id 
+   FROM 
+   	customer AS c
+   INNER JOIN
+   	pay AS p ON p.customer_id = c.customer_id
+   WHERE 
+   	YEAR(p.date_pay) = '2008';
+   	
+   -- Utilizando la función DATE_FORMAT de MySQL
+   
+   SELECT DISTINCT 
+   	c.customer_id 
+   FROM 
+   	customer AS c
+   INNER JOIN
+   	pay AS p ON p.customer_id = c.customer_id
+   WHERE 
+   	DATE_FORMAT(p.date_pay, '%Y') = '2008' ;
+   	
+   -- Sin utilizar ninguna de las funciones anteriores.
+   
+   SELECT DISTINCT 
+   	c.customer_id 
+   FROM 
+   	customer AS c
+   INNER JOIN
+   	pay AS p ON p.customer_id = c.customer_id
+   WHERE 
+   	p.date_pay LIKE '%2008%' ;
+   	
+   +-------------+
+   | customer_id |
+   +-------------+
+   |           1 |
+   |          13 |
+   |          14 |
+   |          26 |
+   +-------------+
+   
    ```
-
+   
 9. Devuelve un listado con el código de pedido, código de cliente, fecha
    esperada y fecha de entrega de los pedidos que no han sido entregados a
    tiempo.
 
    ```sql
+   SELECT 
+   	O.order_code AS 'Codigo Pedido',
+   	O.customer_id AS 'Codigo Cliente',
+   	O.date_waiting AS 'Fecha de Espera',
+   	O.date_deliver AS 'Fecha de Entrega'
+   FROM 
+   	`order` AS O
+   WHERE 
+   	O.date_waiting > O.date_deliver;
+   
+   +---------------+----------------+-----------------+------------------+
+   | Codigo Pedido | Codigo Cliente | Fecha de Espera | Fecha de Entrega |
+   +---------------+----------------+-----------------+------------------+
+   |             2 |              5 | 2007-10-28      | 2007-10-26       |
+   |            15 |              7 | 2009-01-12      | 2009-01-11       |
+   |            24 |             14 | 2008-07-31      | 2008-07-25       |
+   |            30 |             13 | 2008-09-03      | 2008-08-31       |
+   |            36 |             14 | 2008-12-15      | 2008-12-10       |
+   |            48 |             26 | 2008-03-30      | 2008-03-29       |
+   |            53 |             13 | 2008-11-15      | 2008-11-09       |
+   |            58 |              3 | 2009-01-31      | 2009-01-30       |
+   |            64 |              1 | 2009-01-31      | 2009-01-30       |
+   |            89 |             35 | 2007-12-13      | 2007-12-10       |
+   |            91 |             27 | 2009-03-29      | 2009-03-27       |
+   |            93 |             27 | 2009-05-30      | 2009-05-17       |
+   +---------------+----------------+-----------------+------------------+
+   
    
    ```
-
+   
 10. Devuelve un listado con el código de pedido, código de cliente, fecha
     esperada y fecha de entrega de los pedidos cuya fecha de entrega ha sido al
     menos dos días antes de la fecha esperada.
@@ -904,12 +1164,93 @@ GROUP BY p.id_producto;
     resta -?
 
     ```sql
+    -- Utilizando la función ADDDATE de MySQL.
+    SELECT 
+    	O.order_code AS 'Codigo Pedido',
+    	O.customer_id AS 'Codigo Cliente',
+    	O.date_waiting AS 'Fecha de Espera',
+    	O.date_deliver AS 'Fecha de Entrega'
+    FROM 
+    	`order` AS O
+    WHERE 
+    	O.date_deliver <= ADDDATE(O.date_waiting , INTERVAL -2 DAY);
+    	
+    -- Utilizando la función DATEDIFF de MySQL.
+    
+    SELECT 
+    	O.order_code AS 'Codigo Pedido',
+    	O.customer_id AS 'Codigo Cliente',
+    	O.date_waiting AS 'Fecha de Espera',
+    	O.date_deliver AS 'Fecha de Entrega'
+    FROM 
+    	`order` AS O
+    WHERE 
+    	DATEDIFF(O.date_waiting, O.date_deliver) >= 2;
+    	
+    -- ¿Sería posible resolver esta consulta utilizando el operador de -
+    
+    SELECT 
+    	O.order_code AS 'Codigo Pedido',
+    	O.customer_id AS 'Codigo Cliente',
+    	O.date_waiting AS 'Fecha de Espera',
+    	O.date_deliver AS 'Fecha de Entrega'
+    FROM 
+    	`order` AS O
+    WHERE 
+    	(O.date_waiting - O.date_deliver) >= 2;
+    
+    +---------------+----------------+-----------------+------------------+
+    | Codigo Pedido | Codigo Cliente | Fecha de Espera | Fecha de Entrega |
+    +---------------+----------------+-----------------+------------------+
+    |             2 |              5 | 2007-10-28      | 2007-10-26       |
+    |            24 |             14 | 2008-07-31      | 2008-07-25       |
+    |            30 |             13 | 2008-09-03      | 2008-08-31       |
+    |            36 |             14 | 2008-12-15      | 2008-12-10       |
+    |            53 |             13 | 2008-11-15      | 2008-11-09       |
+    |            89 |             35 | 2007-12-13      | 2007-12-10       |
+    |            91 |             27 | 2009-03-29      | 2009-03-27       |
+    |            93 |             27 | 2009-05-30      | 2009-05-17       |
+    +---------------+----------------+-----------------+------------------+
     
     ```
-
+    
 11. Devuelve un listado de todos los pedidos que fueron rechazados en 2009.
 
     ```sql
+    SELECT 
+    	O.order_code AS 'Codigo Pedido',
+    	O.customer_id AS 'Codigo Cliente',
+    	O.date_waiting AS 'Fecha de Espera',
+    	O.date_deliver AS 'Fecha de Entrega',
+    	O.status AS 'Estado'
+    FROM 
+    	`order` AS O
+    WHERE 
+    	O.status = 'rechazado'
+    	AND 
+    	(YEAR (O.date_order) = '2009'
+    	OR
+    	YEAR (O.date_deliver) = '2009');
+    	
+    +---------------+----------------+-----------------+------------------+-----------+
+    | Codigo Pedido | Codigo Cliente | Fecha de Espera | Fecha de Entrega | Estado    |
+    +---------------+----------------+-----------------+------------------+-----------+
+    |            14 |              7 | 2009-01-02      | NULL             | Rechazado |
+    |            21 |              9 | 2009-01-09      | 2009-01-09       | Rechazado |
+    |            25 |              1 | 2009-02-08      | NULL             | Rechazado |
+    |            26 |              3 | 2009-02-12      | NULL             | Rechazado |
+    |            40 |             19 | 2009-03-10      | 2009-03-13       | Rechazado |
+    |            46 |             23 | 2009-03-04      | 2009-03-05       | Rechazado |
+    |            65 |              1 | 2009-02-08      | NULL             | Rechazado |
+    |            66 |              3 | 2009-02-12      | NULL             | Rechazado |
+    |            74 |             15 | 2009-01-22      | NULL             | Rechazado |
+    |            81 |             28 | 2009-01-24      | NULL             | Rechazado |
+    |           101 |             16 | 2009-03-27      | NULL             | Rechazado |
+    |           105 |             30 | 2009-02-20      | NULL             | Rechazado |
+    |           113 |             36 | 2008-11-09      | 2009-01-09       | Rechazado |
+    |           120 |             16 | 2009-03-27      | NULL             | Rechazado |
+    |           125 |             30 | 2009-02-20      | NULL             | Rechazado |
+    +---------------+----------------+-----------------+------------------+-----------+
     
     ```
 
@@ -917,38 +1258,166 @@ GROUP BY p.id_producto;
     mes de enero de cualquier año.
 
     ```sql
+    SELECT 
+    	O.order_code AS 'Codigo Pedido',
+    	O.customer_id AS 'Codigo Cliente',
+    	O.date_waiting AS 'Fecha de Espera',
+    	O.date_deliver AS 'Fecha de Entrega',
+    	O.status AS 'Estado'
+    FROM 
+    	`order` AS O
+    WHERE 
+    	O.status = 'entregado'
+    	AND 
+    	MONTH(O.date_deliver) = 1;
+    	
+    +---------------+----------------+-----------------+------------------+-----------+
+    | Codigo Pedido | Codigo Cliente | Fecha de Espera | Fecha de Entrega | Estado    |
+    +---------------+----------------+-----------------+------------------+-----------+
+    |             1 |              5 | 2006-01-19      | 2006-01-19       | Entregado |
+    |            13 |              7 | 2009-01-14      | 2009-01-15       | Entregado |
+    |            15 |              7 | 2009-01-12      | 2009-01-11       | Entregado |
+    |            16 |              7 | 2009-01-07      | 2009-01-15       | Entregado |
+    |            17 |              7 | 2009-01-09      | 2009-01-11       | Entregado |
+    |            18 |              9 | 2009-01-06      | 2009-01-07       | Entregado |
+    |            22 |              9 | 2009-01-11      | 2009-01-13       | Entregado |
+    |            32 |              4 | 2007-01-19      | 2007-01-27       | Entregado |
+    |            55 |             14 | 2009-01-10      | 2009-01-11       | Entregado |
+    |            58 |              3 | 2009-01-31      | 2009-01-30       | Entregado |
+    |            64 |              1 | 2009-01-31      | 2009-01-30       | Entregado |
+    |            75 |             15 | 2009-01-13      | 2009-01-13       | Entregado |
+    |            79 |             28 | 2009-01-13      | 2009-01-13       | Entregado |
+    |            82 |             28 | 2009-01-29      | 2009-01-29       | Entregado |
+    |            95 |             35 | 2008-01-19      | 2008-01-19       | Entregado |
+    |           100 |             16 | 2009-01-15      | 2009-01-15       | Entregado |
+    |           102 |             16 | 2009-01-08      | 2009-01-08       | Entregado |
+    |           114 |             36 | 2009-01-29      | 2009-01-31       | Entregado |
+    |           119 |             16 | 2009-01-15      | 2009-01-15       | Entregado |
+    |           121 |             16 | 2009-01-08      | 2009-01-08       | Entregado |
+    +---------------+----------------+-----------------+------------------+-----------+
     
     ```
-
+    
 13. Devuelve un listado con todos los pagos que se realizaron en el
     año 2008 mediante Paypal. Ordene el resultado de mayor a menor.
 
     ```sql
+    SELECT 
+    	p.id_transaction AS 'id',
+    	p.date_pay,
+    	p.total,
+    	p.method_pay AS 'Metodo',
+    	p.customer_id AS 'Cliente'
+    FROM 
+    	pay AS  p 
+    WHERE 
+    	YEAR (date_pay) = '2008'
+    ORDER BY 
+    	total DESC;
+    	
+    +---------------+------------+-------+--------+---------+
+    | id            | date_pay   | total | Metodo | Cliente |
+    +---------------+------------+-------+--------+---------+
+    | ak-std-000020 | 2008-03-18 | 18846 | PayPal |      26 |
+    | ak-std-000015 | 2008-07-15 |  4160 | PayPal |      14 |
+    | ak-std-000014 | 2008-08-04 |  2246 | PayPal |      13 |
+    | ak-std-000001 | 2008-11-10 |  2000 | PayPal |       1 |
+    | ak-std-000002 | 2008-12-10 |  2000 | PayPal |       1 |
+    +---------------+------------+-------+--------+---------+
     
     ```
-
+    
 14. Devuelve un listado con todas las formas de pago que aparecen en la
     tabla pago. Tenga en cuenta que no deben aparecer formas de pago
     repetidas.
 
     ```sql
-    
+    SELECT DISTINCT 
+    	p.method_pay AS 'Metodo'
+    FROM 
+    	pay AS  p;
+    	
+    +---------------+
+    | Metodo        |
+    +---------------+
+    | PayPal        |
+    | Transferencia |
+    | Cheque        |
+    +---------------+
+    	
     ```
-
+    
 15. Devuelve un listado con todos los productos que pertenecen a la
     gama Ornamentales y que tienen más de 100 unidades en stock. El listado
     deberá estar ordenado por su precio de venta, mostrando en primer lugar
     los de mayor precio.
 
     ```sql
+    SELECT
+    	p.product_name AS 'Nombre',
+    	p.stock_amount AS 'Cantidad',
+    	p.gama AS 'Gama'
+    FROM 
+    	product AS p 
+    INNER JOIN
+    	gama_product AS gp ON gp.gama_product_id = p.gama
+    WHERE 
+    	gp.gama_product_id LIKE '%Ornamentales%'
+    	AND 
+    	p.stock_amount > 100;
+    	
+    +--------------------------------------------+----------+--------------+
+    | Nombre                                     | Cantidad | Gama         |
+    +--------------------------------------------+----------+--------------+
+    | Escallonia (Mix)                           |      120 | Ornamentales |
+    | Evonimus Emerald Gayeti                    |      120 | Ornamentales |
+    | Evonimus Pulchellus                        |      120 | Ornamentales |
+    | Forsytia Intermedia "Lynwood"              |      120 | Ornamentales |
+    | Hibiscus Syriacus  "Diana" -Blanco Puro    |      120 | Ornamentales |
+    | Hibiscus Syriacus  "Helene" -Blanco-C.rojo |      120 | Ornamentales |
+    | Hibiscus Syriacus "Pink Giant" Rosa        |      120 | Ornamentales |
+    | Laurus Nobilis Arbusto - Ramificado Bajo   |      120 | Ornamentales |
+    | Lonicera Nitida                            |      120 | Ornamentales |
+    | Lonicera Nitida "Maigrum"                  |      120 | Ornamentales |
+    | Lonicera Pileata                           |      120 | Ornamentales |
+    | Philadelphus "Virginal"                    |      120 | Ornamentales |
+    | Prunus pisardii                            |      120 | Ornamentales |
+    | Viburnum Tinus "Eve Price"                 |      120 | Ornamentales |
+    | Weigelia "Bristol Ruby"                    |      120 | Ornamentales |
+    +--------------------------------------------+----------+--------------+
     
     ```
-
+    
 16. Devuelve un listado con todos los clientes que sean de la ciudad de Madrid y
     cuyo representante de ventas tenga el código de empleado 11 o 30.
 
     ```sql
+    SELECT 
+    	cu.customer_name AS 'Nombre',
+    	c.city_name AS 'Ciudad',
+    	cu.employee_id AS 'Codigo Empleado'
+    FROM 
+    	customer AS cu
+    INNER JOIN
+    	address AS a ON a.customer_id  = cu.customer_id 
+    INNER JOIN
+    	city AS c ON c.city_id = a.city_id
+    WHERE 
+    	c.city_name  = 'Madrid'
+    	AND 
+    	cu.employee_id IN (11, 30);
     
+    +-----------------------------+--------+-----------------+
+    | Nombre                      | Ciudad | Codigo Empleado |
+    +-----------------------------+--------+-----------------+
+    | Beragua                     | Madrid |              11 |
+    | Club Golf Puerta del hierro | Madrid |              11 |
+    | Naturagua                   | Madrid |              11 |
+    | DaraDistribuciones          | Madrid |              11 |
+    | Madrileña de riegos         | Madrid |              11 |
+    | Jardin de Flores            | Madrid |              30 |
+    | Naturajardin                | Madrid |              30 |
+    +-----------------------------+--------+-----------------+
     ```
 
 ## Consultas multitabla (Composición interna)
@@ -960,8 +1429,10 @@ sintaxis de SQL2 se deben resolver con INNER JOIN y NATURAL JOIN.
    representante de ventas.
 
    ```sql
+   
+   
    ```
-
+   
 2. Muestra el nombre de los clientes que hayan realizado pagos junto con el
    nombre de sus representantes de ventas.
 
