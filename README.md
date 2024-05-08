@@ -821,7 +821,7 @@ DELIMITER ;
 
 ````
 
-###### DESPUES DE CREAR LOS PROCEDIMIENTOS EJECUTAMOS EL ARCHIVO CALL_PROCEDURES PARA PODER AGREGAR DATOS DE PRUEBA [Click]([GARDEN_DB/calls_procedures.sql at main · David-Albarracin/GARDEN_DB (github.com)](https://github.com/David-Albarracin/GARDEN_DB/blob/main/calls_procedures.sql))
+###### DESPUES DE CREAR LOS PROCEDIMIENTOS EJECUTAMOS EL ARCHIVO CALL_PROCEDURES PARA PODER AGREGAR DATOS DE PRUEBA [DATOS]([GARDEN_DB/calls_procedures.sql at main · David-Albarracin/GARDEN_DB (github.com)])
 
 #### VISTAS PARA FACILITAR BÚSQUEDAS 
 
@@ -1013,6 +1013,40 @@ WHERE
 			c.employee_id
 		FROM 
 			customer AS c 
+	);
+	
+	
+-- Vista comprados
+USE garden;
+
+DROP VIEW IF EXISTS show_products_nots;
+
+CREATE VIEW show_products_nots AS
+SELECT DISTINCT
+    p.product_code,
+    p.product_name
+FROM
+    product AS p
+INNER JOIN
+    order_detail AS dp ON p.product_code = dp.product_code;
+    
+-- Vista No comprados
+USE garden;
+
+DROP VIEW IF EXISTS show_products_yes;
+
+CREATE VIEW show_products_yes AS
+SELECT DISTINCT
+    p.product_code,
+    p.product_name
+FROM
+    product AS p
+WHERE 
+	NOT EXISTS(
+		SELECT 1
+		FROM order_detail AS od
+		WHERE 
+			od.product_code = p.product_code
 	);
 
 ```
@@ -3239,37 +3273,243 @@ LEFT JOIN y NATURAL RIGHT JOIN.
     realizado ningún pago.
 
     ```sql
+    SELECT 
+    	c.customer_name 
+    FROM 
+    	customer AS c
+    WHERE 
+    	c.customer_id NOT IN (
+    		SELECT 
+    			p.customer_id
+    		FROM 
+    			pay AS P
+    		
+    	);
+    	
+    +-----------------------------+
+    | customer_name               |
+    +-----------------------------+
+    | Lasas S.A.                  |
+    | Club Golf Puerta del hierro |
+    | DaraDistribuciones          |
+    | Madrileña de riegos         |
+    | Lasas S.A.                  |
+    | Flowers, S.A                |
+    | Naturajardin                |
+    | Americh Golf Management SL  |
+    | Aloha                       |
+    | El Prat                     |
+    | Vivero Humanes              |
+    | Fuenla City                 |
+    | Top Campo                   |
+    | Campohermoso                |
+    | france telecom              |
+    | Musée du Louvre             |
+    | Flores S.L.                 |
+    | The Magic Garden            |
+    +-----------------------------+
+    18 rows in set (0.00 sec)
     ```
-
+    
 13. Devuelve un listado que muestre solamente los clientes que sí han realizado
     algún pago.
 
     ```sql
+    SELECT 
+    	c.customer_name 
+    FROM 
+    	customer AS c
+    WHERE 
+    	c.customer_id IN (
+    		SELECT 
+    			p.customer_id
+    		FROM 
+    			pay AS P
+    		
+    	);
+    	
+    +--------------------------------+
+    | customer_name                  |
+    +--------------------------------+
+    | GoldFish Garden                |
+    | Gardening Associates           |
+    | Gerudo Valley                  |
+    | Tendo Garden                   |
+    | Beragua                        |
+    | Naturagua                      |
+    | Camunas Jardines S.L.          |
+    | Dardena S.A.                   |
+    | Jardin de Flores               |
+    | Flores Marivi                  |
+    | Golf S.A.                      |
+    | Sotogrande                     |
+    | Jardines y Mansiones Cactus SL |
+    | Jardinerías Matías SL          |
+    | Agrojardin                     |
+    | Jardineria Sara                |
+    | Tutifruti S.A                  |
+    | El Jardin Viviente S.L         |
+    +--------------------------------+
+    18 rows in set (0.00 sec)
     ```
-
+    
 14. Devuelve un listado de los productos que nunca han aparecido en un
     pedido.
 
     ```sql
+    SELECT DISTINCT 
+    	p.product_name 
+    FROM
+    	product AS p 
+    WHERE 
+    	p.product_code NOT IN(
+    		SELECT 
+    			od.product_code
+    		FROM 
+    			order_detail AS od 
+    		
+    	);
+    	
+    +-------------------------------------------------------------+
+    | product_name                                                |
+    +-------------------------------------------------------------+
+    | Olea-Olivos                                                 |
+    | Calamondin Mini                                             |
+    | Chamaerops Humilis "Cerifera"                               |
+    | Chrysalidocarpus Lutescens -ARECA                           |
+    | Cordyline Australis -DRACAENA                               |
+    | Cycas Revoluta                                              |
+    | Dracaena Drago                                              |
+    | Livistonia Decipiens                                        |
+    | Rhaphis Excelsa                                             |
+    | Sabal Minor                                                 |
+    | Trachycarpus Fortunei                                       |
+    | Washingtonia Robusta                                        |
+    | Zamia Furfuracaea                                           |
+    +-------------------------------------------------------------+
+    107 rows in set (0.00 sec)
     ```
-
+    
 15. Devuelve el nombre, apellidos, puesto y teléfono de la oficina de aquellos
     empleados que no sean representante de ventas de ningún cliente.
 
     ```sql
+    SELECT 
+        e.employee_first_name ,
+        e.employee_first_surname last_name,
+        r.rol_name
+    FROM 
+        employee AS e
+    INNER JOIN 
+        office AS o ON e.office_id = o.office_id
+    INNER JOIN 
+    	rol AS r ON r.rol_id = e.rol_id  
+    WHERE 
+        e.employee_id NOT IN (
+            SELECT 
+                DISTINCT employee_id 
+            FROM 
+                customer 
+            WHERE 
+                employee_id IS NOT NULL
+        ) AND NOT
+        r.rol_name = 'Representante Ventas'
+        ;
+        
+    +---------------------+------------+-----------------------+
+    | employee_first_name | last_name  | rol_name              |
+    +---------------------+------------+-----------------------+
+    | Marcos              | Magaña     | Director General      |
+    | Ruben               | López      | Subdirector Marketing |
+    | Alberto             | Soria      | Subdirector Ventas    |
+    | Maria               | Solís      | Secretaria            |
+    | Carlos              | Soria      | Director Oficina      |
+    | Francois            | Fignon     | Director Oficina      |
+    | Hilary              | Washington | Director Oficina      |
+    | Nei                 | Nishikori  | Director Oficina      |
+    | Amy                 | Johnson    | Director Oficina      |
+    | Kevin               | Fallmer    | Director Oficina      |
+    +---------------------+------------+-----------------------+
+    10 rows in set (0.00 sec)
     ```
-
+    
 16. Devuelve las oficinas donde no trabajan ninguno de los empleados que
     hayan sido los representantes de ventas de algún cliente que haya realizado
     la compra de algún producto de la gama Frutales.
 
     ```sql
+    SELECT 
+        o.office_id
+    FROM 
+        office AS o
+    WHERE 
+        NOT EXISTS (
+            SELECT 1
+            FROM 
+                employee AS e
+            INNER JOIN 
+                customer AS c ON e.employee_id = c.employee_id
+            INNER JOIN 
+                `order` AS ord ON c.customer_id = ord.customer_id
+            INNER JOIN 
+                order_detail AS od ON ord.order_code = od.order_code
+            INNER JOIN 
+                product AS p ON od.product_code = p.product_code
+            WHERE 
+                e.office_id = o.office_id
+                AND p.gama = 'Frutales'
+        );
+        
+    +-----------+
+    | office_id |
+    +-----------+
+    | LON-UK    |
+    | PAR-FR    |
+    | TOK-JP    |
+    +-----------+
+    3 rows in set (0.00 sec)
     ```
-
+    
 17. Devuelve un listado con los clientes que han realizado algún pedido pero no
     han realizado ningún pago.
 
     ```sql
+    SELECT 
+    	c.customer_name 
+    FROM 
+    	customer AS c
+    WHERE 
+    	c.customer_id NOT IN (
+    		SELECT 
+    			p.customer_id
+    		FROM 
+    			pay AS P
+    		
+    	);
+    	
+    +-----------------------------+
+    | customer_name               |
+    +-----------------------------+
+    | Lasas S.A.                  |
+    | Club Golf Puerta del hierro |
+    | DaraDistribuciones          |
+    | Madrileña de riegos         |
+    | Lasas S.A.                  |
+    | Flowers, S.A                |
+    | Naturajardin                |
+    | Americh Golf Management SL  |
+    | Aloha                       |
+    | El Prat                     |
+    | Vivero Humanes              |
+    | Fuenla City                 |
+    | Top Campo                   |
+    | Campohermoso                |
+    | france telecom              |
+    | Musée du Louvre             |
+    | Flores S.L.                 |
+    | The Magic Garden            |
+    +-----------------------------+
+    18 rows in set (0.00 sec)
     ```
 
 ##### **Subconsultas con EXISTS y NOT EXISTS**
@@ -3278,24 +3518,127 @@ LEFT JOIN y NATURAL RIGHT JOIN.
     realizado ningún pago.
 
     ```sql
+    SELECT 
+        c.customer_name 
+    FROM 
+        customer AS c
+    WHERE 
+        NOT EXISTS (
+            SELECT 
+                p.customer_id
+            FROM 
+                pay AS p
+            WHERE
+                p.customer_id = c.customer_id
+        );
+    	
+    +-----------------------------+
+    | customer_name               |
+    +-----------------------------+
+    | Lasas S.A.                  |
+    | Club Golf Puerta del hierro |
+    | DaraDistribuciones          |
+    | Madrileña de riegos         |
+    | Lasas S.A.                  |
+    | Flowers, S.A                |
+    | Naturajardin                |
+    | Americh Golf Management SL  |
+    | Aloha                       |
+    | El Prat                     |
+    | Vivero Humanes              |
+    | Fuenla City                 |
+    | Top Campo                   |
+    | Campohermoso                |
+    | france telecom              |
+    | Musée du Louvre             |
+    | Flores S.L.                 |
+    | The Magic Garden            |
+    +-----------------------------+
+    18 rows in set (0.00 sec)
     ```
-
+    
 19. Devuelve un listado que muestre solamente los clientes que sí han realizado
     algún pago.
 
     ```sql
+    SELECT 
+        c.customer_name 
+    FROM 
+        customer AS c
+    WHERE 
+        EXISTS (
+            SELECT 
+                p.customer_id
+            FROM 
+                pay AS p
+            WHERE
+                p.customer_id = c.customer_id
+        );
+        
+    +--------------------------------+
+    | customer_name                  |
+    +--------------------------------+
+    | GoldFish Garden                |
+    | Gardening Associates           |
+    | Gerudo Valley                  |
+    | Tendo Garden                   |
+    | Beragua                        |
+    | Naturagua                      |
+    | Camunas Jardines S.L.          |
+    | Dardena S.A.                   |
+    | Jardin de Flores               |
+    | Flores Marivi                  |
+    | Golf S.A.                      |
+    | Sotogrande                     |
+    | Jardines y Mansiones Cactus SL |
+    | Jardinerías Matías SL          |
+    | Agrojardin                     |
+    | Jardineria Sara                |
+    | Tutifruti S.A                  |
+    | El Jardin Viviente S.L         |
+    +--------------------------------+
+    18 rows in set (0.00 sec)
     ```
-
+    
 20. Devuelve un listado de los productos que nunca han aparecido en un
     pedido.
 
     ```sql
+    SELECT product_code, product_name FROM show_products_nots;
+    +--------------+-------------------------------------------------------------+
+    | product_code | product_name                                                |
+    +--------------+-------------------------------------------------------------+
+    | OR-119       | Laurus Nobilis Arbusto - Ramificado Bajo                    |
+    | OR-125       | Viburnum Tinus "Eve Price"                                  |
+    | FR-16        | Calamondin Copa EXTRA Con FRUTA                             |
+    | OR-200       | Juniperus horizontalis Wiltonii                             |
+    | FR-78        | Higuera                                                     |
+    | FR-80        | Higuera                                                     |
+    | OR-146       | Bougamvillea Sanderiana Tutor                               |
+    | OR-150       | Bougamvillea roja, naranja                                  |
+    +--------------+-------------------------------------------------------------+
+    147 rows in set (0.00 sec)
     ```
-
+    
 21. Devuelve un listado de los productos que han aparecido en un pedido
     alguna vez.
 
     ```sql
+    SELECT product_code, product_name FROM show_products_yes;
+    
+    +--------------+-------------------------------------------------------------+
+    | product_code | product_name                                                |
+    +--------------+-------------------------------------------------------------+
+    | OR-238       | Livistonia Decipiens                                        |
+    | OR-239       | Livistonia Decipiens                                        |
+    | OR-242       | Rhaphis Excelsa                                             |
+    | OR-244       | Sabal Minor                                                 |
+    | OR-245       | Sabal Minor                                                 |
+    | OR-246       | Trachycarpus Fortunei                                       |
+    | OR-248       | Washingtonia Robusta                                        |
+    | OR-251       | Zamia Furfuracaea                                           |
+    +--------------+-------------------------------------------------------------+
+    129 rows in set (0.00 sec)
     ```
 
 ##### Subconsultas correlacionadas
