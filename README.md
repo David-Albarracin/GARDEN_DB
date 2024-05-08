@@ -280,7 +280,7 @@ CREATE TABLE IF NOT EXISTS `garden`.`phone_number` (
   `customer_contact_id` INT NULL DEFAULT NULL,
   PRIMARY KEY (`phone_number_id`),
   INDEX `fk_phone_number_office1_idx` (`office_id` ASC) VISIBLE,
-  INDEX `fk_phone_number_employee1_idx` (`employee_employee_id` ASC) VISIBLE,
+  INDEX `fk_phone_number_employee1_idx` (`employee_id` ASC) VISIBLE,
   INDEX `fk_phone_number_provider1_idx` (`provider_id` ASC) VISIBLE,
   INDEX `fk_phone_number_customer_contact1_idx` (`customer_contact_id` ASC) VISIBLE,
   CONSTRAINT `fk_phone_number_office1`
@@ -851,6 +851,71 @@ INNER JOIN
 	phone_number AS pn ON pn.customer_contact_id = cc.customer_contact_id
 INNER JOIN
 	employee AS e ON e.employee_id = cu.employee_id;
+	
+-- VISTA PARA FACILITAR LAS BUSQUEDAS DE LOS EMPLEADOS CON CLIENTES
+USE garden;
+
+DROP VIEW IF EXISTS employee_data;
+
+CREATE VIEW employee_data AS
+SELECT 
+	e.employee_first_name,
+	e.office_id,
+	c.customer_name
+FROM 
+	employee AS e
+LEFT JOIN
+	customer AS c ON c.employee_id = e.employee_id
+WHERE 
+	c.employee_id IS NULL 
+	OR 
+	c.employee_id IS NOT NULL
+	;
+	
+-- VISTA PARA PRODUCTOS NO COMPRADOS 
+USE garden;
+
+DROP VIEW IF EXISTS products_data;
+
+CREATE VIEW products_data AS
+SELECT DISTINCT 
+	p.product_name,
+	'Descripcion',
+	od.amount
+FROM 
+	product AS p
+LEFT JOIN
+	order_detail AS od ON od.product_code = p.product_code
+WHERE 
+	od.product_code IS NULL 
+	OR 
+	od.product_code IS NOT NULL
+	;
+
+-- EMPLEADOS POR PAIS 
+
+USE garden;
+
+DROP VIEW IF EXISTS employee_country;
+
+CREATE VIEW employee_country AS
+SELECT
+	co.country_name,
+	COUNT(c.customer_id) AS 'Total Clientes'
+FROM 
+	address AS a
+INNER JOIN
+	customer AS c ON c.customer_id = a.customer_id
+INNER JOIN 
+	city AS cy ON cy.city_id = a.city_id
+INNER JOIN 
+	region AS r ON r.region_id = cy.region_id
+INNER JOIN 
+	country AS co ON co.country_id = r.country_id 
+GROUP BY 
+	co.country_name;
+	
+SELECT * FROM employee_country;
 
 ```
 
@@ -1429,7 +1494,54 @@ sintaxis de SQL2 se deben resolver con INNER JOIN y NATURAL JOIN.
    representante de ventas.
 
    ```sql
-   
+   -- VIEW 
+   SELECT 
+   	cliente_nombre,
+   	empleado_nombre ,
+   	empleado_apellido
+   FROM 
+   	customer_meta;
+   	
+   +--------------------------------+-----------------+-------------------+
+   | cliente_nombre                 | empleado_nombre | empleado_apellido |
+   +--------------------------------+-----------------+-------------------+
+   | GoldFish Garden                | Walter Santiago | Sanchez           |
+   | Gardening Associates           | Walter Santiago | Sanchez           |
+   | Gerudo Valley                  | Lorena          | Paxton            |
+   | Tendo Garden                   | Lorena          | Paxton            |
+   | Lasas S.A.                     | Mariano         | López             |
+   | Beragua                        | Emmanuel        | Magaña            |
+   | Club Golf Puerta del hierro    | Emmanuel        | Magaña            |
+   | Naturagua                      | Emmanuel        | Magaña            |
+   | DaraDistribuciones             | Emmanuel        | Magaña            |
+   | Madrileña de riegos            | Emmanuel        | Magaña            |
+   | Lasas S.A.                     | Mariano         | López             |
+   | Camunas Jardines S.L.          | Mariano         | López             |
+   | Dardena S.A.                   | Mariano         | López             |
+   | Jardin de Flores               | Julian          | Bellinelli        |
+   | Flores Marivi                  | Felipe          | Rosas             |
+   | Flowers, S.A                   | Felipe          | Rosas             |
+   | Naturajardin                   | Julian          | Bellinelli        |
+   | Golf S.A.                      | José Manuel     | Martinez          |
+   | Americh Golf Management SL     | José Manuel     | Martinez          |
+   | Aloha                          | José Manuel     | Martinez          |
+   | El Prat                        | José Manuel     | Martinez          |
+   | Sotogrande                     | José Manuel     | Martinez          |
+   | Vivero Humanes                 | Julian          | Bellinelli        |
+   | Fuenla City                    | Felipe          | Rosas             |
+   | Jardines y Mansiones Cactus SL | Lucio           | Campoamor         |
+   | Jardinerías Matías SL          | Lucio           | Campoamor         |
+   | Agrojardin                     | Julian          | Bellinelli        |
+   | Top Campo                      | Felipe          | Rosas             |
+   | Jardineria Sara                | Felipe          | Rosas             |
+   | Campohermoso                   | Julian          | Bellinelli        |
+   | france telecom                 | Lionel          | Narvaez           |
+   | Musée du Louvre                | Lionel          | Narvaez           |
+   | Tutifruti S.A                  | Mariko          | Kishi             |
+   | Flores S.L.                    | Michael         | Bolton            |
+   | The Magic Garden               | Michael         | Bolton            |
+   | El Jardin Viviente S.L         | Mariko          | Kishi             |
+   +--------------------------------+-----------------+-------------------+
    
    ```
    
@@ -1437,63 +1549,438 @@ sintaxis de SQL2 se deben resolver con INNER JOIN y NATURAL JOIN.
    nombre de sus representantes de ventas.
 
    ```sql
+   SELECT 
+   	c.cliente_nombre,
+   	c.empleado_nombre
+   FROM 
+   	customer_meta AS c
+   INNER JOIN
+   	pay AS p ON p.customer_id =  c.cliente_id;
+   
+   +--------------------------------+-----------------+
+   | cliente_nombre                 | empleado_nombre |
+   +--------------------------------+-----------------+
+   | GoldFish Garden                | Walter Santiago |
+   | GoldFish Garden                | Walter Santiago |
+   | Gardening Associates           | Walter Santiago |
+   | Gardening Associates           | Walter Santiago |
+   | Gardening Associates           | Walter Santiago |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Tendo Garden                   | Lorena          |
+   | Beragua                        | Emmanuel        |
+   | Naturagua                      | Emmanuel        |
+   | Camunas Jardines S.L.          | Mariano         |
+   | Dardena S.A.                   | Mariano         |
+   | Jardin de Flores               | Julian          |
+   | Jardin de Flores               | Julian          |
+   | Flores Marivi                  | Felipe          |
+   | Golf S.A.                      | José Manuel     |
+   | Sotogrande                     | José Manuel     |
+   | Jardines y Mansiones Cactus SL | Lucio           |
+   | Jardinerías Matías SL          | Lucio           |
+   | Agrojardin                     | Julian          |
+   | Jardineria Sara                | Felipe          |
+   | Tutifruti S.A                  | Mariko          |
+   | El Jardin Viviente S.L         | Mariko          |
+   +--------------------------------+-----------------+
    ```
-
+   
 3. Muestra el nombre de los clientes que no hayan realizado pagos junto con
    el nombre de sus representantes de ventas.
 
    ```sql
+   SELECT 
+   	c.cliente_nombre,
+   	c.empleado_nombre
+   FROM 
+   	customer_meta AS c
+   INNER JOIN
+   	pay AS p ON p.customer_id =  c.cliente_id;
+   	
+   +--------------------------------+-----------------+
+   | cliente_nombre                 | empleado_nombre |
+   +--------------------------------+-----------------+
+   | GoldFish Garden                | Walter Santiago |
+   | GoldFish Garden                | Walter Santiago |
+   | Gardening Associates           | Walter Santiago |
+   | Gardening Associates           | Walter Santiago |
+   | Gardening Associates           | Walter Santiago |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Gerudo Valley                  | Lorena          |
+   | Tendo Garden                   | Lorena          |
+   | Beragua                        | Emmanuel        |
+   | Naturagua                      | Emmanuel        |
+   | Camunas Jardines S.L.          | Mariano         |
+   | Dardena S.A.                   | Mariano         |
+   | Jardin de Flores               | Julian          |
+   | Jardin de Flores               | Julian          |
+   | Flores Marivi                  | Felipe          |
+   | Golf S.A.                      | José Manuel     |
+   | Sotogrande                     | José Manuel     |
+   | Jardines y Mansiones Cactus SL | Lucio           |
+   | Jardinerías Matías SL          | Lucio           |
+   | Agrojardin                     | Julian          |
+   | Jardineria Sara                | Felipe          |
+   | Tutifruti S.A                  | Mariko          |
+   | El Jardin Viviente S.L         | Mariko          |
+   +--------------------------------+-----------------+
    ```
-
+   
 4. Devuelve el nombre de los clientes que han hecho pagos y el nombre de sus
    representantes junto con la ciudad de la oficina a la que pertenece el
    representante.
 
    ```sql
+   SELECT 
+   	c.cliente_nombre,
+   	c.empleado_nombre,
+   	cy.city_name 
+   FROM 
+   	customer_meta AS c
+   INNER JOIN
+   	pay AS p ON p.customer_id =  c.cliente_id
+   INNER JOIN
+   	office AS o ON o.office_id = c.officina
+   INNER JOIN
+   	city AS cy ON cy.city_id  = o.city_id ;
+   	
+   +--------------------------------+-----------------+----------------------+
+   | cliente_nombre                 | empleado_nombre | city_name            |
+   +--------------------------------+-----------------+----------------------+
+   | GoldFish Garden                | Walter Santiago | San Francisco        |
+   | GoldFish Garden                | Walter Santiago | San Francisco        |
+   | Gardening Associates           | Walter Santiago | San Francisco        |
+   | Gardening Associates           | Walter Santiago | San Francisco        |
+   | Gardening Associates           | Walter Santiago | San Francisco        |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Tendo Garden                   | Lorena          | Boston               |
+   | Beragua                        | Emmanuel        | Barcelona            |
+   | Naturagua                      | Emmanuel        | Barcelona            |
+   | Camunas Jardines S.L.          | Mariano         | Madrid               |
+   | Dardena S.A.                   | Mariano         | Madrid               |
+   | Jardin de Flores               | Julian          | Sydney               |
+   | Jardin de Flores               | Julian          | Sydney               |
+   | Flores Marivi                  | Felipe          | Talavera de la Reina |
+   | Golf S.A.                      | José Manuel     | Barcelona            |
+   | Sotogrande                     | José Manuel     | Barcelona            |
+   | Jardines y Mansiones Cactus SL | Lucio           | Madrid               |
+   | Jardinerías Matías SL          | Lucio           | Madrid               |
+   | Agrojardin                     | Julian          | Sydney               |
+   | Jardineria Sara                | Felipe          | Talavera de la Reina |
+   | Tutifruti S.A                  | Mariko          | Sydney               |
+   | El Jardin Viviente S.L         | Mariko          | Sydney               |
+   +--------------------------------+-----------------+----------------------+
    ```
-
+   
 5. Devuelve el nombre de los clientes que no hayan hecho pagos y el nombre
    de sus representantes junto con la ciudad de la oficina a la que pertenece el
    representante.
 
    ```sql
+   SELECT 
+   	c.cliente_nombre,
+   	c.empleado_nombre,
+   	cy.city_name 
+   FROM 
+   	customer_meta AS c
+   INNER JOIN
+   	pay AS p ON p.customer_id =  c.cliente_id
+   INNER JOIN
+   	office AS o ON o.office_id = c.officina
+   INNER JOIN
+   	city AS cy ON cy.city_id  = o.city_id ;
+   	
+   +--------------------------------+-----------------+----------------------+
+   | cliente_nombre                 | empleado_nombre | city_name            |
+   +--------------------------------+-----------------+----------------------+
+   | GoldFish Garden                | Walter Santiago | San Francisco        |
+   | GoldFish Garden                | Walter Santiago | San Francisco        |
+   | Gardening Associates           | Walter Santiago | San Francisco        |
+   | Gardening Associates           | Walter Santiago | San Francisco        |
+   | Gardening Associates           | Walter Santiago | San Francisco        |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Tendo Garden                   | Lorena          | Boston               |
+   | Beragua                        | Emmanuel        | Barcelona            |
+   | Naturagua                      | Emmanuel        | Barcelona            |
+   | Camunas Jardines S.L.          | Mariano         | Madrid               |
+   | Dardena S.A.                   | Mariano         | Madrid               |
+   | Jardin de Flores               | Julian          | Sydney               |
+   | Jardin de Flores               | Julian          | Sydney               |
+   | Flores Marivi                  | Felipe          | Talavera de la Reina |
+   | Golf S.A.                      | José Manuel     | Barcelona            |
+   | Sotogrande                     | José Manuel     | Barcelona            |
+   | Jardines y Mansiones Cactus SL | Lucio           | Madrid               |
+   | Jardinerías Matías SL          | Lucio           | Madrid               |
+   | Agrojardin                     | Julian          | Sydney               |
+   | Jardineria Sara                | Felipe          | Talavera de la Reina |
+   | Tutifruti S.A                  | Mariko          | Sydney               |
+   | El Jardin Viviente S.L         | Mariko          | Sydney               |
+   +--------------------------------+-----------------+----------------------+
    ```
-
+   
 6. Lista la dirección de las oficinas que tengan clientes en Fuenlabrada.
 
    ```sql
+   SELECT DISTINCT 
+   	o.address_line_1  
+   FROM 
+   	customer AS c
+   INNER JOIN
+   	address AS a ON a.customer_id = c.customer_id
+   INNER JOIN 
+   	city AS c2 ON c2.city_id = a.city_id
+   INNER JOIN 
+   	employee AS e ON e.employee_id = c.employee_id 
+   INNER JOIN 
+   	office AS o ON o.office_id = e.office_id 
+   WHERE 
+   	c2.city_name LIKE '%Fuenlabrada%';
+   	
+   +------------------------------+
+   | address_line_1               |
+   +------------------------------+
+   | Bulevar Indalecio Prieto, 32 |
+   | Francisco Aguirre, 32        |
+   | 5-11 Wentworth Avenue        |
+   +------------------------------+
+   3 rows in set (0.00 sec)
    ```
 
 7. Devuelve el nombre de los clientes y el nombre de sus representantes junto
    con la ciudad de la oficina a la que pertenece el representante.
 
    ```sql
+   SELECT 
+   	c.cliente_nombre,
+   	c.empleado_nombre,
+   	cy.city_name 
+   FROM 
+   	customer_meta AS c
+   INNER JOIN
+   	office AS o ON o.office_id = c.officina
+   INNER JOIN
+   	city AS cy ON cy.city_id  = o.city_id
+   INNER JOIN 
+   	address AS a ON a.customer_id = c.cliente_id ;
+   	
+   +--------------------------------+-----------------+----------------------+
+   | cliente_nombre                 | empleado_nombre | city_name            |
+   +--------------------------------+-----------------+----------------------+
+   | GoldFish Garden                | Walter Santiago | San Francisco        |
+   | Gardening Associates           | Walter Santiago | San Francisco        |
+   | Gerudo Valley                  | Lorena          | Boston               |
+   | Tendo Garden                   | Lorena          | Boston               |
+   | Lasas S.A.                     | Mariano         | Madrid               |
+   | Beragua                        | Emmanuel        | Barcelona            |
+   | Club Golf Puerta del hierro    | Emmanuel        | Barcelona            |
+   | Naturagua                      | Emmanuel        | Barcelona            |
+   | DaraDistribuciones             | Emmanuel        | Barcelona            |
+   | Madrileña de riegos            | Emmanuel        | Barcelona            |
+   | Lasas S.A.                     | Mariano         | Madrid               |
+   | Camunas Jardines S.L.          | Mariano         | Madrid               |
+   | Dardena S.A.                   | Mariano         | Madrid               |
+   | Jardin de Flores               | Julian          | Sydney               |
+   | Flores Marivi                  | Felipe          | Talavera de la Reina |
+   | Flowers, S.A                   | Felipe          | Talavera de la Reina |
+   | Naturajardin                   | Julian          | Sydney               |
+   | Golf S.A.                      | José Manuel     | Barcelona            |
+   | Americh Golf Management SL     | José Manuel     | Barcelona            |
+   | Aloha                          | José Manuel     | Barcelona            |
+   | El Prat                        | José Manuel     | Barcelona            |
+   | Sotogrande                     | José Manuel     | Barcelona            |
+   | Vivero Humanes                 | Julian          | Sydney               |
+   | Fuenla City                    | Felipe          | Talavera de la Reina |
+   | Jardines y Mansiones Cactus SL | Lucio           | Madrid               |
+   | Jardinerías Matías SL          | Lucio           | Madrid               |
+   | Agrojardin                     | Julian          | Sydney               |
+   | Top Campo                      | Felipe          | Talavera de la Reina |
+   | Jardineria Sara                | Felipe          | Talavera de la Reina |
+   | Campohermoso                   | Julian          | Sydney               |
+   | france telecom                 | Lionel          | Paris                |
+   | Musée du Louvre                | Lionel          | Paris                |
+   | Tutifruti S.A                  | Mariko          | Sydney               |
+   | Flores S.L.                    | Michael         | San Francisco        |
+   | The Magic Garden               | Michael         | San Francisco        |
+   | El Jardin Viviente S.L         | Mariko          | Sydney               |
+   +--------------------------------+-----------------+----------------------+
+   36 rows in set (0.00 sec)
    ```
-
+   
 8. Devuelve un listado con el nombre de los empleados junto con el nombre
    de sus jefes.
 
    ```sql
+   SELECT
+   	e.employee_first_name AS 'Empleado',
+   	b.employee_first_name AS 'Jefe'
+   FROM 
+   	employee AS e
+   INNER JOIN
+   	employee AS b ON e.boss_id = b.employee_id;
+   
+   +-----------------+----------+
+   | Empleado        | Jefe     |
+   +-----------------+----------+
+   | Ruben           | Marcos   |
+   | Alberto         | Ruben    |
+   | Maria           | Ruben    |
+   | Felipe          | Alberto  |
+   | Juan Carlos     | Alberto  |
+   | Carlos          | Alberto  |
+   | Mariano         | Carlos   |
+   | Lucio           | Carlos   |
+   | Hilario         | Carlos   |
+   | Emmanuel        | Alberto  |
+   | José Manuel     | Emmanuel |
+   | David           | Emmanuel |
+   | Oscar           | Emmanuel |
+   | Francois        | Alberto  |
+   | Lionel          | Francois |
+   | Laurent         | Francois |
+   | Michael         | Alberto  |
+   | Walter Santiago | Michael  |
+   | Hilary          | Alberto  |
+   | Marcus          | Hilary   |
+   | Lorena          | Hilary   |
+   | Nei             | Alberto  |
+   | Narumi          | Nei      |
+   | Takuma          | Nei      |
+   | Amy             | Alberto  |
+   | Larry           | Amy      |
+   | John            | Amy      |
+   | Kevin           | Alberto  |
+   | Julian          | Kevin    |
+   | Mariko          | Kevin    |
+   +-----------------+----------+
    ```
-
+   
 9. Devuelve un listado que muestre el nombre de cada empleados, el nombre
    de su jefe y el nombre del jefe de sus jefe.
 
    ```sql
+   SELECT
+   	e.employee_first_name AS 'Empleado',
+   	b.employee_first_name AS 'Jefe',
+   	b2.employee_first_name AS 'Jefe Superior'
+   FROM 
+   	employee AS e
+   INNER JOIN
+   	employee AS b ON e.boss_id = b.employee_id
+   INNER JOIN
+   	employee AS b2 ON b.boss_id = b2.employee_id;
+   	
+   +-----------------+----------+---------------+
+   | Empleado        | Jefe     | Jefe Superior |
+   +-----------------+----------+---------------+
+   | Alberto         | Ruben    | Marcos        |
+   | Maria           | Ruben    | Marcos        |
+   | Felipe          | Alberto  | Ruben         |
+   | Juan Carlos     | Alberto  | Ruben         |
+   | Carlos          | Alberto  | Ruben         |
+   | Mariano         | Carlos   | Alberto       |
+   | Lucio           | Carlos   | Alberto       |
+   | Hilario         | Carlos   | Alberto       |
+   | Emmanuel        | Alberto  | Ruben         |
+   | José Manuel     | Emmanuel | Alberto       |
+   | David           | Emmanuel | Alberto       |
+   | Oscar           | Emmanuel | Alberto       |
+   | Francois        | Alberto  | Ruben         |
+   | Lionel          | Francois | Alberto       |
+   | Laurent         | Francois | Alberto       |
+   | Michael         | Alberto  | Ruben         |
+   | Walter Santiago | Michael  | Alberto       |
+   | Hilary          | Alberto  | Ruben         |
+   | Marcus          | Hilary   | Alberto       |
+   | Lorena          | Hilary   | Alberto       |
+   | Nei             | Alberto  | Ruben         |
+   | Narumi          | Nei      | Alberto       |
+   | Takuma          | Nei      | Alberto       |
+   | Amy             | Alberto  | Ruben         |
+   | Larry           | Amy      | Alberto       |
+   | John            | Amy      | Alberto       |
+   | Kevin           | Alberto  | Ruben         |
+   | Julian          | Kevin    | Alberto       |
+   | Mariko          | Kevin    | Alberto       |
+   +-----------------+----------+---------------+
+   29 rows in set (0.00 sec)
    ```
-
+   
 10. Devuelve el nombre de los clientes a los que no se les ha entregado a
     tiempo un pedido.
 
     ```sql
+    SELECT DISTINCT 
+    	c.customer_name 
+    FROM 
+    	`order` AS o 
+    INNER JOIN
+    	customer AS c ON c.customer_id = o.customer_id 
+    WHERE 
+    	o.date_waiting < o.date_deliver ;
+    	
+    +--------------------------------+
+    | customer_name                  |
+    +--------------------------------+
+    | GoldFish Garden                |
+    | Beragua                        |
+    | Naturagua                      |
+    | Gardening Associates           |
+    | Camunas Jardines S.L.          |
+    | Gerudo Valley                  |
+    | Golf S.A.                      |
+    | Sotogrande                     |
+    | Jardines y Mansiones Cactus SL |
+    | Dardena S.A.                   |
+    | Jardinerías Matías SL          |
+    | Tutifruti S.A                  |
+    | Jardineria Sara                |
+    | Flores S.L.                    |
+    | El Jardin Viviente S.L         |
+    +--------------------------------+
+    15 rows in set (0.00 sec)
     ```
-
+    
 11. Devuelve un listado de las diferentes gamas de producto que ha comprado
     cada cliente.
 
     ```sql
+    SELECT DISTINCT 
+    	p.gama 
+    FROM 
+    	`order` AS o 
+    INNER JOIN
+    	customer AS c ON c.customer_id = o.customer_id 
+    INNER JOIN 
+    	order_detail AS od ON od.order_code = o.order_code 
+    INNER JOIN 
+    	product AS p ON p.product_code = od.product_code;
+    	
+    +--------------+
+    | gama         |
+    +--------------+
+    | Frutales     |
+    | Aromáticas   |
+    | Ornamentales |
+    | Herramientas |
+    +--------------+
+    4 rows in set (0.00 sec)
     ```
-
+    
     
 
 ## Consultas multitabla (Composición externa)
@@ -1505,74 +1992,363 @@ LEFT JOIN y NATURAL RIGHT JOIN.
    realizado ningún pago.
 
    ```sql
+   SELECT DISTINCT 
+   	c.customer_name 
+   FROM 
+   	customer AS c
+   LEFT JOIN
+   	pay AS p ON p.customer_id = c.customer_id
+   WHERE
+   	p.customer_id IS NULL;
+   	
+   +-----------------------------+
+   | customer_name               |
+   +-----------------------------+
+   | Lasas S.A.                  |
+   | Club Golf Puerta del hierro |
+   | DaraDistribuciones          |
+   | Madrileña de riegos         |
+   | Flowers, S.A                |
+   | Naturajardin                |
+   | Americh Golf Management SL  |
+   | Aloha                       |
+   | El Prat                     |
+   | Vivero Humanes              |
+   | Fuenla City                 |
+   | Top Campo                   |
+   | Campohermoso                |
+   | france telecom              |
+   | Musée du Louvre             |
+   | Flores S.L.                 |
+   | The Magic Garden            |
+   +-----------------------------+
+   17 rows in set (0.00 sec)
    ```
-
+   
 2. Devuelve un listado que muestre solamente los clientes que no han
    realizado ningún pedido.
 
    ```sql
+   SELECT DISTINCT 
+   	c.customer_name 
+   FROM 
+   	customer AS c
+   LEFT JOIN
+   	`order` AS o ON o.customer_id = c.customer_id
+   WHERE
+   	o.customer_id IS NULL;
+   	
+   +-----------------------------+
+   | customer_name               |
+   +-----------------------------+
+   | Lasas S.A.                  |
+   | Club Golf Puerta del hierro |
+   | DaraDistribuciones          |
+   | Madrileña de riegos         |
+   | Flowers, S.A                |
+   | Naturajardin                |
+   | Americh Golf Management SL  |
+   | Aloha                       |
+   | El Prat                     |
+   | Vivero Humanes              |
+   | Fuenla City                 |
+   | Top Campo                   |
+   | Campohermoso                |
+   | france telecom              |
+   | Musée du Louvre             |
+   | The Magic Garden            |
+   +-----------------------------+
+   16 rows in set (0.00 sec)
    ```
-
+   
 3. Devuelve un listado que muestre los clientes que no han realizado ningún
    pago y los que no han realizado ningún pedido.
 
    ```sql
+   SELECT DISTINCT 
+   	c.customer_name 
+   FROM 
+   	customer AS c
+   LEFT JOIN
+   	`order` AS o ON o.customer_id = c.customer_id
+   LEFT JOIN
+   	pay AS p ON p.customer_id = c.customer_id
+   WHERE
+   	o.customer_id IS NULL
+   	AND 
+   	p.customer_id IS NULL;
+   	
+   +-----------------------------+
+   | customer_name               |
+   +-----------------------------+
+   | Lasas S.A.                  |
+   | Club Golf Puerta del hierro |
+   | DaraDistribuciones          |
+   | Madrileña de riegos         |
+   | Flowers, S.A                |
+   | Naturajardin                |
+   | Americh Golf Management SL  |
+   | Aloha                       |
+   | El Prat                     |
+   | Vivero Humanes              |
+   | Fuenla City                 |
+   | Top Campo                   |
+   | Campohermoso                |
+   | france telecom              |
+   | Musée du Louvre             |
+   | The Magic Garden            |
+   +-----------------------------+
+   16 rows in set (0.00 sec)
    ```
-
+   
 4. Devuelve un listado que muestre solamente los empleados que no tienen
    una oficina asociada.
 
    ```sql
+   SELECT
+   	e.employee_first_name 
+   FROM 
+   	employee AS e
+   WHERE 
+   	e.office_id IS NULL;
    ```
-
+   
 5. Devuelve un listado que muestre solamente los empleados que no tienen un
    cliente asociado.
 
    ```sql
+   SELECT
+   	e.employee_first_name 
+   FROM 
+   	employee AS e
+   LEFT JOIN
+   	customer AS c ON c.employee_id  = e.employee_id 
+   WHERE 
+   	c.employee_id IS NULL;
+   	
+   +---------------------+
+   | employee_first_name |
+   +---------------------+
+   | Marcos              |
+   | Ruben               |
+   | Alberto             |
+   | Maria               |
+   | Juan Carlos         |
+   | Carlos              |
+   | Hilario             |
+   | David               |
+   | Oscar               |
+   | Francois            |
+   | Laurent             |
+   | Hilary              |
+   | Marcus              |
+   | Nei                 |
+   | Narumi              |
+   | Takuma              |
+   | Amy                 |
+   | Larry               |
+   | John                |
+   | Kevin               |
+   +---------------------+
+   20 rows in set (0.00 sec)
    ```
-
+   
 6. Devuelve un listado que muestre solamente los empleados que no tienen un
    cliente asociado junto con los datos de la oficina donde trabajan.
 
    ```sql
+   SELECT 
+   	ed.employee_first_name
+   FROM 
+   	employee_data AS ed
+   WHERE 
+   	ed.customer_name IS NULL;
+   
+   +---------------------+
+   | employee_first_name |
+   +---------------------+
+   | Marcos              |
+   | Ruben               |
+   | Alberto             |
+   | Maria               |
+   | Juan Carlos         |
+   | Carlos              |
+   | Hilario             |
+   | David               |
+   | Oscar               |
+   | Francois            |
+   | Laurent             |
+   | Hilary              |
+   | Marcus              |
+   | Nei                 |
+   | Narumi              |
+   | Takuma              |
+   | Amy                 |
+   | Larry               |
+   | John                |
+   | Kevin               |
+   +---------------------+
+   20 rows in set (0.00 sec)
    ```
-
+   
 7. Devuelve un listado que muestre los empleados que no tienen una oficina
    asociada y los que no tienen un cliente asociado.
 
    ```sql
+   SELECT 
+   	ed.employee_first_name
+   FROM 
+   	employee_data AS ed
+   WHERE 
+   	ed.customer_name IS NULL
+   	AND
+   	ed.office_id IS NULL
+   	;
    ```
-
+   
 8. Devuelve un listado de los productos que nunca han aparecido en un
    pedido.
 
    ```sql
+   SELECT
+   	pd.product_name
+   FROM 
+   	products_data AS pd
+   WHERE
+   	pd.amount IS NULL;
+   +-------------------------------------------------------------+
+   | product_name                                                |
+   +-------------------------------------------------------------+
+   | Olea-Olivos                                                 |
+   | Calamondin Mini                                             |
+   | Camelia Blanco, Chrysler Rojo, Soraya Naranja,              |
+   +-------------------------------------------------------------+
+   107 rows in set (0.00 sec)
    ```
-
+   
 9. Devuelve un listado de los productos que nunca han aparecido en un
    pedido. El resultado debe mostrar el nombre, la descripción y la imagen del
    producto.
 
    ```sql
+   SELECT
+   	pd.product_name,
+   	pd.Descripcion
+   FROM 
+   	products_data AS pd
+   WHERE
+   	pd.amount IS NULL;
+   	
+   +---------------------------------------------------------------------------+
+   | product_name                                                              |
+   +---------------------------------------------------------------------------+
+   | Rhaphis Excelsa                                             | Descripcion |
+   | Sabal Minor                                                 | Descripcion |
+   | Trachycarpus Fortunei                                       | Descripcion |
+   | Washingtonia Robusta                                        | Descripcion |
+   | Zamia Furfuracaea                                           | Descripcion |
+   +-------------------------------------------------------------+-------------+
+   107 rows in set (0.00 sec)
    ```
-
+   
 10. Devuelve las oficinas donde no trabajan ninguno de los empleados que
     hayan sido los representantes de ventas de algún cliente que haya realizado
     la compra de algún producto de la gama Frutales.
 
     ```sql
+    SELECT DISTINCT 
+        e.office_id 
+    FROM 
+        order_detail AS od
+    INNER JOIN
+        product AS p ON p.product_code = od.product_code 
+    INNER JOIN 
+        `order` AS o ON o.order_code = od.order_code 
+    INNER JOIN 
+        customer AS c ON c.customer_id = o.customer_id 
+    INNER JOIN 
+        employee AS e ON e.employee_id = c.employee_id
+    RIGHT JOIN 
+        office AS o2 ON e.office_id = o2.office_id  
+    WHERE 
+        p.gama = 'Frutales';
+        
+    +-----------+
+    | office_id |
+    +-----------+
+    | TAL-ES    |
+    | MAD-ES    |
+    | BCN-ES    |
+    | SFC-USA   |
+    | BOS-USA   |
+    | SYD-AU    |
+    +-----------+
+    6 rows in set (0.00 sec)
     ```
-
+    
 11. Devuelve un listado con los clientes que han realizado algún pedido pero no
     han realizado ningún pago.
 
     ```sql
+    SELECT DISTINCT 
+    	c.customer_name 
+    FROM 
+    	customer AS c 
+    INNER JOIN
+    	`order` AS o ON o.customer_id = c.customer_id 
+    LEFT JOIN 
+    	pay AS p ON p.customer_id = c.customer_id 
+    WHERE 
+    	p.customer_id IS NULL;
+    
+    +---------------+
+    | customer_name |
+    +---------------+
+    | Flores S.L.   |
+    +---------------+
+    1 row in set (0.00 sec)
     ```
-
+    
 12. Devuelve un listado con los datos de los empleados que no tienen clientes
     asociados y el nombre de su jefe asociado.
 
     ```sql
+    SELECT 
+    	e.employee_first_name AS 'Empleado',
+    	e2.employee_first_name AS 'Jefe Nombre'
+    FROM 
+    	employee AS e
+    LEFT JOIN
+    	customer AS c ON c.employee_id = e.employee_id 
+    INNER JOIN 
+    	employee AS e2 ON e2.employee_id = e.boss_id
+    WHERE 
+    	c.employee_id IS NULL;
+    	
+    +-------------+-------------+
+    | Empleado    | Jefe Nombre |
+    +-------------+-------------+
+    | Ruben       | Marcos      |
+    | Alberto     | Ruben       |
+    | Maria       | Ruben       |
+    | Juan Carlos | Alberto     |
+    | Carlos      | Alberto     |
+    | Hilario     | Carlos      |
+    | David       | Emmanuel    |
+    | Oscar       | Emmanuel    |
+    | Francois    | Alberto     |
+    | Laurent     | Francois    |
+    | Hilary      | Alberto     |
+    | Marcus      | Hilary      |
+    | Nei         | Alberto     |
+    | Narumi      | Nei         |
+    | Takuma      | Nei         |
+    | Amy         | Alberto     |
+    | Larry       | Amy         |
+    | John        | Amy         |
+    | Kevin       | Alberto     |
+    +-------------+-------------+
+    19 rows in set (0.00 sec)
     ```
 
 
@@ -1582,46 +2358,173 @@ LEFT JOIN y NATURAL RIGHT JOIN.
 1. ¿Cuántos empleados hay en la compañía?
 
    ```sql
+   SELECT 
+   	COUNT(e.employee_id) AS 'Total Empleados'
+   FROM
+   	employee AS e 
+   	
+   +-----------------+
+   | Total Empleados |
+   +-----------------+
+   |              31 |
+   +-----------------+
+   1 row in set (0.00 sec)
    ```
 
 2. ¿Cuántos clientes tiene cada país?
 
    ```sql
+   SELECT
+   	ec.country_name,
+   	ec.Total_Clientes
+   FROM
+   	employee_country AS ec
+   ORDER BY
+   	ec.country_name ASC;
+   	
+   +----------------+----------------+
+   | country_name   | Total_Clientes |
+   +----------------+----------------+
+   | Australia      |              2 |
+   | EEUU           |              1 |
+   | España         |             24 |
+   | Inglaterra     |              2 |
+   | Spain          |              3 |
+   | United Kingdom |              1 |
+   | USA            |              3 |
+   +----------------+----------------+
+   7 rows in set (0.00 sec)
    ```
 
 3. ¿Cuál fue el pago medio en 2009?
 
    ```sql
+   SELECT 
+   	AVG(p.total) AS 'pago_medio_2009'
+   FROM 
+   	pay AS p
+   WHERE 
+   	YEAR(p.date_pay) = '2009';
+   	
+   +-----------------+
+   | pago_medio_2009 |
+   +-----------------+
+   |       4504.0769 |
+   +-----------------+
+   1 row in set (0.00 sec)
    ```
 
 4. ¿Cuántos pedidos hay en cada estado? Ordena el resultado de forma
    descendente por el número de pedidos.
 
    ```sql
+   SELECT 
+   	o.status, 
+   	count(o.order_code) AS 'Numero_Pedidos' 
+   FROM 
+   	`order` AS o
+   GROUP BY
+   	o.status 
+   ORDER BY
+   	Numero_Pedidos DESC;
+   	
+   +-----------+----------------+
+   | status    | Numero_Pedidos |
+   +-----------+----------------+
+   | Entregado |             61 |
+   | Pendiente |             30 |
+   | Rechazado |             24 |
+   +-----------+----------------+
+   3 rows in set (0.00 sec)	
    ```
-
+   
 5. Calcula el precio de venta del producto más caro y más barato en una
    misma consulta.
 
    ```sql
+   SELECT 
+   	MAX(p.price_sell) AS precio_mayor, 
+   	MIN(p.price_sell) AS precio_menor
+   FROM 
+   	product AS p;
+   	
+   +--------------+--------------+
+   | precio_mayor | precio_menor |
+   +--------------+--------------+
+   |          462 |            1 |
+   +--------------+--------------+
+   1 row in set (0.00 sec)
    ```
-
+   
 6. Calcula el número de clientes que tiene la empresa.
 
    ```sql
+   SELECT 
+   	COUNT(c.customer_id) AS 'Total Clientes'
+   FROM
+   	customer AS c
+   	
+   +----------------+
+   | Total Clientes |
+   +----------------+
+   |             36 |
+   +----------------+
+   1 row in set (0.00 sec)
    ```
 
 7. ¿Cuántos clientes existen con domicilio en la ciudad de Madrid?
 
    ```sql
+   SELECT 
+   	cy.city_name,
+   	COUNT(c.customer_id) AS 'Total Clientes'
+   FROM
+   	customer AS c
+   INNER JOIN
+   	address AS a ON a.customer_id = c.customer_id
+   INNER JOIN 
+   	city AS cy ON cy.city_id = a.city_id
+   WHERE 
+   	cy.city_name LIKE '%Madrid%'
+   GROUP BY 
+   	cy.city_name;
+   	
+   +-----------+----------------+
+   | city_name | Total Clientes |
+   +-----------+----------------+
+   | Madrid    |             11 |
+   +-----------+----------------+
+   1 row in set (0.00 sec)
    ```
 
 8. ¿Calcula cuántos clientes tiene cada una de las ciudades que empiezan
    por M?
 
    ```sql
+   SELECT 
+   	cy.city_name,
+   	COUNT(c.customer_id) AS 'Total Clientes'
+   FROM
+   	customer AS c
+   INNER JOIN
+   	address AS a ON a.customer_id = c.customer_id
+   INNER JOIN 
+   	city AS cy ON cy.city_id = a.city_id
+   WHERE 
+   	cy.city_name LIKE 'M%'
+   GROUP BY 
+   	cy.city_name;
+   	
+   +----------------------+----------------+
+   | city_name            | Total Clientes |
+   +----------------------+----------------+
+   | Madrid               |             11 |
+   | Miami                |              2 |
+   | Montornes del valles |              1 |
+   +----------------------+----------------+
+   3 rows in set (0.00 sec)
    ```
-
+   
 9. Devuelve el nombre de los representantes de ventas y el número de clientes
    al que atiende cada uno.
 
