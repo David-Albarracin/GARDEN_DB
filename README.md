@@ -818,6 +818,84 @@ END $$
 
 DELIMITER ;
 
+-- PROCEDIMIENTO 
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_provider_new_data;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_provider_new_data(
+    IN nombre VARCHAR(40),
+    IN apellido VARCHAR(40)
+)
+BEGIN
+   	DECLARE mensaje VARCHAR(100);
+   	DECLARE last_id INT;
+   
+   	SELECT MAX(p.provider_id) INTO last_id FROM provider AS p;
+   	
+   	IF last_id IS NULL THEN
+		SET last_id = 1;
+	ELSE
+		SET last_id = last_id + 1;
+	END IF;
+   
+   	INSERT INTO provider(
+   			provider_id,
+			provider_name,
+			provider_surname 
+		) VALUES (
+			last_id + 1,
+			nombre, 
+			apellido
+	);
+
+	IF ROW_COUNT() > 0 THEN
+		SET mensaje = 'Se actualizó el registro correctamente.';
+	ELSE
+		SET mensaje = 'No se encontró ningún registro para actualizar.';
+	END IF;
+
+	SELECT mensaje AS Resultado;
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO 
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS off_employee;
+
+DELIMITER $$
+
+CREATE PROCEDURE off_employee(
+	IN id INT
+)
+BEGIN
+   	DECLARE mensaje VARCHAR(100);
+   	
+   	UPDATE 
+   		employee 
+   	SET 
+   		actived = 0
+   	WHERE 
+   		employee_id = id;
+
+	IF ROW_COUNT() > 0 THEN
+		SET mensaje = 'Se actualizó el registro correctamente.';
+	ELSE
+		SET mensaje = 'No se encontró ningún registro para actualizar.';
+	END IF;
+
+	SELECT mensaje AS Resultado;
+
+END $$
+
+DELIMITER ;
 
 ````
 
@@ -923,7 +1001,7 @@ DROP VIEW IF EXISTS employee_customer_count;
 CREATE VIEW employee_customer_count AS
 SELECT
 	e.employee_first_name AS 'Empleado',
-	COUNT(c.customer_id) AS '#Clientes'
+	COUNT(c.customer_id) AS 'Clientes'
 FROM 
 	employee AS e
 INNER JOIN
@@ -1048,7 +1126,26 @@ WHERE
 		WHERE 
 			od.product_code = p.product_code
 	);
+	
+-- Vista para facilitar las busquedas
+USE garden;
 
+DROP VIEW IF EXISTS office_city_info;
+
+CREATE VIEW office_city_info AS
+SELECT 
+	o.office_id,
+	c.city_name,
+	o.office_phone_number,
+	country_name
+FROM 
+	office AS o
+INNER JOIN
+	city AS c ON c.city_id = o.city_id
+INNER JOIN
+	region AS r ON c.region_id = r.region_id
+INNER JOIN
+	country AS co ON co.country_id = r.country_id;
 ```
 
 

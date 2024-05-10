@@ -1,3 +1,1118 @@
+-- CREAR TABLAS
+USE `garden` ;
+
+-- -----------------------------------------------------
+-- Table `garden`.`gama_product`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`gama_product` (
+  `gama_product_id` VARCHAR(50) NOT NULL,
+  `description` TEXT NULL,
+  `description_html` TEXT NULL,
+  `image` VARCHAR(256) NULL,
+  PRIMARY KEY (`gama_product_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`product`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`product` (
+  `product_code` VARCHAR(15) NOT NULL,
+  `product_name` VARCHAR(70) NULL,
+  `description` TEXT NULL,
+  `stock_amount` SMALLINT(6) NULL,
+  `price_sell` DECIMAL(15) NULL,
+  `gama` VARCHAR(50) NOT NULL,
+  `height` SMALLINT(6) NULL,
+  `width` SMALLINT(6) NULL,
+  `length` SMALLINT(6) NULL,
+  `weight` SMALLINT(6) NULL,
+  PRIMARY KEY (`product_code`),
+  INDEX `fk_product_gama_product_idx` (`gama` ASC) VISIBLE,
+  UNIQUE INDEX `product_code_UNIQUE` (`product_code` ASC) VISIBLE,
+  CONSTRAINT `fk_product_gama_product`
+    FOREIGN KEY (`gama`)
+    REFERENCES `garden`.`gama_product` (`gama_product_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`provider`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`provider` (
+  `provider_id` INT NOT NULL,
+  `provider_name` VARCHAR(50) NULL,
+  `provider_surname` VARCHAR(50) NULL,
+  PRIMARY KEY (`provider_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`provider_product`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`provider_product` (
+  `provider_id` INT NOT NULL,
+  `new_price` DECIMAL(15) NULL,
+  `old_price` DECIMAL(15) NULL,
+  `product_code` VARCHAR(15) NOT NULL,
+  INDEX `fk_provider_product_provider1_idx` (`provider_id` ASC) VISIBLE,
+  INDEX `fk_provider_product_product1_idx` (`product_code` ASC) VISIBLE,
+  CONSTRAINT `pk_provider_product` PRIMARY KEY (`provider_id`, `product_code`),
+  CONSTRAINT `fk_provider_product_provider1`
+    FOREIGN KEY (`provider_id`)
+    REFERENCES `garden`.`provider` (`provider_id`),
+  CONSTRAINT `fk_provider_product_product1`
+    FOREIGN KEY (`product_code`)
+    REFERENCES `garden`.`product` (`product_code`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`rol`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`rol` (
+  `rol_id` INT(11) NOT NULL AUTO_INCREMENT,
+  `rol_name` VARCHAR(50) NOT NULL,
+  `showProducts` TINYINT NULL DEFAULT 1,
+  `actived` TINYINT NULL DEFAULT 1,
+  `created_at` DATETIME NULL DEFAULT NOW(),
+  `updated_at` DATETIME NULL DEFAULT NOW(),
+  PRIMARY KEY (`rol_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`country`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`country` (
+  `country_id` INT(10) NOT NULL AUTO_INCREMENT,
+  `country_name` VARCHAR(45) NULL,
+  PRIMARY KEY (`country_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`region`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`region` (
+  `region_id` INT(10) NOT NULL AUTO_INCREMENT,
+  `region_name` VARCHAR(45) NULL,
+  `country_id` INT(10) NOT NULL,
+  PRIMARY KEY (`region_id`),
+  INDEX `fk_region_country1_idx` (`country_id` ASC) VISIBLE,
+  CONSTRAINT `fk_region_country1`
+    FOREIGN KEY (`country_id`)
+    REFERENCES `garden`.`country` (`country_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`city`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`city` (
+  `city_id` INT(10) NOT NULL AUTO_INCREMENT,
+  `city_name` VARCHAR(45) NULL,
+  `postal_code` VARCHAR(45) NULL,
+  `region_id` INT(10) NOT NULL,
+  PRIMARY KEY (`city_id`),
+  INDEX `fk_city_region1_idx` (`region_id` ASC) VISIBLE,
+  CONSTRAINT `fk_city_region1`
+    FOREIGN KEY (`region_id`)
+    REFERENCES `garden`.`region` (`region_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`office`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`office` (
+  `office_id` VARCHAR(10) NOT NULL,
+  `office_phone_number` VARCHAR(45) NULL,
+  `address_line_1` VARCHAR(50) NULL,
+  `address_line_2` VARCHAR(50) NULL,
+  `city_id` INT(10) NOT NULL,
+  `main_office_id` VARCHAR(10) NULL DEFAULT NULL,
+  PRIMARY KEY (`office_id`),
+  INDEX `fk_office_city1_idx` (`city_id` ASC) VISIBLE,
+  INDEX `fk_office_office1_idx` (`main_office_id` ASC) VISIBLE,
+  CONSTRAINT `fk_office_city1`
+    FOREIGN KEY (`city_id`)
+    REFERENCES `garden`.`city` (`city_id`),
+  CONSTRAINT `fk_office_office1`
+    FOREIGN KEY (`main_office_id`)
+    REFERENCES `garden`.`office` (`office_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`employee`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`employee` (
+  `employee_id` INT(11) NOT NULL,
+  `employee_first_name` VARCHAR(50) NULL,
+  `employee_last_name` VARCHAR(50) NULL DEFAULT NULL,
+  `employee_first_surname` VARCHAR(50) NULL,
+  `employee_last_surname` VARCHAR(50) NULL,
+  `employee_extension` VARCHAR(45) NULL,
+  `employee_email` VARCHAR(100) NULL,
+  `boss_id` INT(11) NULL,
+  `rol_id` INT(11) NOT NULL,
+  `actived` TINYINT NULL DEFAULT 1,
+  `created_at` DATETIME NULL DEFAULT NOW(),
+  `updated_at` DATETIME NULL DEFAULT NOW(),
+  `office_id` VARCHAR(10) NOT NULL,
+  PRIMARY KEY (`employee_id`),
+  INDEX `fk_employee_employee1_idx` (`boss_id` ASC) VISIBLE,
+  INDEX `fk_employee_rol1_idx` (`rol_id` ASC) VISIBLE,
+  INDEX `fk_employee_office1_idx` (`office_id` ASC) VISIBLE,
+  CONSTRAINT `fk_employee_employee1`
+    FOREIGN KEY (`boss_id`)
+    REFERENCES `garden`.`employee` (`employee_id`),
+  CONSTRAINT `fk_employee_rol1`
+    FOREIGN KEY (`rol_id`)
+    REFERENCES `garden`.`rol` (`rol_id`),
+  CONSTRAINT `fk_employee_office1`
+    FOREIGN KEY (`office_id`)
+    REFERENCES `garden`.`office` (`office_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`customer`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`customer` (
+  `customer_id` INT NOT NULL,
+  `customer_name` VARCHAR(50) NULL,
+  `customer_surname` VARCHAR(50) NULL,
+  `credit_limit` DECIMAL(15) NULL,
+  `employee_id` INT(11) NULL DEFAULT NULL,
+  `customer_email` VARCHAR(45) NULL,
+  PRIMARY KEY (`customer_id`),
+  INDEX `fk_customer_employee1_idx` (`employee_id` ASC) VISIBLE,
+  CONSTRAINT `fk_customer_employee1`
+    FOREIGN KEY (`employee_id`)
+    REFERENCES `garden`.`employee` (`employee_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`address`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`address` (
+  `address_id` INT NOT NULL AUTO_INCREMENT,
+  `address_line_1` VARCHAR(250) NULL,
+  `address_line_2` VARCHAR(250) NULL,
+  `address_type` VARCHAR(45) NULL,
+  `city_id` INT(10) NOT NULL,
+  `provider_id` INT NULL DEFAULT NULL,
+  `customer_id` INT NULL DEFAULT NULL,
+  `employee_id` INT(11) NULL DEFAULT NULL,
+  PRIMARY KEY (`address_id`),
+  INDEX `fk_address_city1_idx` (`city_id` ASC) VISIBLE,
+  INDEX `fk_address_provider1_idx` (`provider_id` ASC) VISIBLE,
+  INDEX `fk_address_customer1_idx` (`customer_id` ASC) VISIBLE,
+  INDEX `fk_address_employee1_idx` (`employee_id` ASC) VISIBLE,
+  CONSTRAINT `fk_address_city1`
+    FOREIGN KEY (`city_id`)
+    REFERENCES `garden`.`city` (`city_id`),
+  CONSTRAINT `fk_address_provider1`
+    FOREIGN KEY (`provider_id`)
+    REFERENCES `garden`.`provider` (`provider_id`),
+  CONSTRAINT `fk_address_customer1`
+    FOREIGN KEY (`customer_id`)
+    REFERENCES `garden`.`customer` (`customer_id`),
+  CONSTRAINT `fk_address_employee1`
+    FOREIGN KEY (`employee_id`)
+    REFERENCES `garden`.`employee` (`employee_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`customer_contact`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`customer_contact` (
+  `customer_contact_id` INT NOT NULL AUTO_INCREMENT,
+  `cc_first_name` VARCHAR(45) NULL,
+  `cc_last_name` VARCHAR(45) NULL DEFAULT NULL,
+  `cc_first_surname` VARCHAR(45) NULL,
+  `cc_last_surname` VARCHAR(45) NULL DEFAULT NULL,
+  `customer_contact_type` VARCHAR(45) NULL,
+  `customer_id` INT NOT NULL,
+  PRIMARY KEY (`customer_contact_id`),
+  INDEX `fk_customer_contact_customer1_idx` (`customer_id` ASC) VISIBLE,
+  CONSTRAINT `fk_customer_contact_customer1`
+    FOREIGN KEY (`customer_id`)
+    REFERENCES `garden`.`customer` (`customer_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`phone_number`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`phone_number` (
+  `phone_number_id` INT NOT NULL AUTO_INCREMENT,
+  `phone_number` VARCHAR(45) NULL,
+  `fax` VARCHAR(15) NULL,
+  `phone_number_prefix` VARCHAR(45) NULL DEFAULT NULL,
+  `phone_number_type` VARCHAR(45) NULL DEFAULT NULL,
+  `created_at` DATETIME NULL DEFAULT NOW(),
+  `updated_at` DATETIME NULL DEFAULT NOW(),
+  `who_is` VARCHAR(45) NULL,
+  `office_id` VARCHAR(10) NULL DEFAULT NULL,
+  `employee_id` INT(11) NULL DEFAULT NULL,
+  `provider_id` INT NULL DEFAULT NULL,
+  `customer_contact_id` INT NULL DEFAULT NULL,
+  PRIMARY KEY (`phone_number_id`),
+  INDEX `fk_phone_number_office1_idx` (`office_id` ASC) VISIBLE,
+  INDEX `fk_phone_number_employee1_idx` (`employee_id` ASC) VISIBLE,
+  INDEX `fk_phone_number_provider1_idx` (`provider_id` ASC) VISIBLE,
+  INDEX `fk_phone_number_customer_contact1_idx` (`customer_contact_id` ASC) VISIBLE,
+  CONSTRAINT `fk_phone_number_office1`
+    FOREIGN KEY (`office_id`)
+    REFERENCES `garden`.`office` (`office_id`),
+  CONSTRAINT `fk_phone_number_employee1`
+    FOREIGN KEY (`employee_id`)
+    REFERENCES `garden`.`employee` (`employee_id`),
+  CONSTRAINT `fk_phone_number_provider1`
+    FOREIGN KEY (`provider_id`)
+    REFERENCES `garden`.`provider` (`provider_id`),
+  CONSTRAINT `fk_phone_number_customer_contact1`
+    FOREIGN KEY (`customer_contact_id`)
+    REFERENCES `garden`.`customer_contact` (`customer_contact_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`order`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`order` (
+  `order_code` INT NOT NULL,
+  `date_order` DATE NULL,
+  `date_waiting` DATE NULL,
+  `date_deliver` DATE NULL,
+  `comments` TEXT NULL,
+  `status` VARCHAR(15) NULL,
+  `customer_id` INT NOT NULL,
+  PRIMARY KEY (`order_code`),
+  INDEX `fk_order_customer1_idx` (`customer_id` ASC) VISIBLE,
+  CONSTRAINT `fk_order_customer1`
+    FOREIGN KEY (`customer_id`)
+    REFERENCES `garden`.`customer` (`customer_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`order_detail`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`order_detail` (
+  `amount` INT(11) NULL,
+  `price_unit` DECIMAL(15) NULL,
+  `line_numer` SMALLINT(6) NULL,
+  `order_code` INT NOT NULL,
+  `product_code` VARCHAR(15) NOT NULL,
+  INDEX `fk_order_detail_order1_idx` (`order_code` ASC) VISIBLE,
+  INDEX `fk_order_detail_product1_idx` (`product_code` ASC) VISIBLE,
+  CONSTRAINT `pk_order_detail` PRIMARY KEY (`product_code`, `order_code`),
+  CONSTRAINT `fk_order_detail_order1`
+    FOREIGN KEY (`order_code`)
+    REFERENCES `garden`.`order` (`order_code`),
+  CONSTRAINT `fk_order_detail_product1`
+    FOREIGN KEY (`product_code`)
+    REFERENCES `garden`.`product` (`product_code`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `garden`.`pay`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `garden`.`pay` (
+  `id_transaction` VARCHAR(50) NOT NULL,
+  `date_pay` DATE NULL,
+  `total` DECIMAL(15) NULL,
+  `method_pay` VARCHAR(45) NULL,
+  `customer_id` INT NOT NULL,
+  PRIMARY KEY (`id_transaction`),
+  INDEX `fk_pay_customer1_idx` (`customer_id` ASC) VISIBLE,
+  CONSTRAINT `fk_pay_customer1`
+    FOREIGN KEY (`customer_id`)
+    REFERENCES `garden`.`customer` (`customer_id`))
+ENGINE = InnoDB;
+
+
+
+-- FUNCION PARA CREAR CIUDADES APARTIR DE LOS DATOS QUE TENGAN ESTOS
+USE garden;
+
+DROP FUNCTION IF EXISTS def_get_city_id;
+
+DELIMITER $$
+
+CREATE FUNCTION def_get_city_id(
+	city_name VARCHAR(50),
+	country_name VARCHAR(50),
+	region_name VARCHAR(50),
+	postal_code VARCHAR(50)
+)
+RETURNS INT
+	DETERMINISTIC
+BEGIN
+	DECLARE get_city_id INT;
+	DECLARE get_region_id INT;
+	DECLARE get_country_id INT;
+	
+	SELECT city_id INTO get_city_id FROM city AS c WHERE c.city_name = city_name;
+
+	IF get_city_id IS NULL THEN
+
+        SELECT country_id INTO get_country_id FROM country AS co WHERE co.country_name = country_name;
+       
+        IF get_country_id IS NULL THEN
+            INSERT INTO country (country_name) VALUES (country_name);
+            SET get_country_id = LAST_INSERT_ID();
+        END IF;
+
+        -- Insertar la región si no existe
+        SELECT region_id INTO get_region_id FROM region WHERE region.region_name = region_name;
+       
+        IF get_region_id IS NULL THEN
+            INSERT INTO region (region_name, country_id) VALUES (region_name, get_country_id);
+            SET get_region_id = LAST_INSERT_ID();
+        END IF;
+
+        -- Insertar la ciudad
+        INSERT INTO city (city_name, postal_code, region_id) VALUES (city_name, postal_code, get_region_id);
+        SET get_city_id = LAST_INSERT_ID();
+    END IF;
+   	RETURN get_city_id;
+   
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR OFICINAS
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_oficina;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_oficina(
+	IN codigo_oficina VARCHAR(10),
+    IN ciudad VARCHAR(30),
+    IN pais VARCHAR(50),
+    IN region_nombre VARCHAR(50),
+    IN codigo_postal VARCHAR(10),
+    IN telefono VARCHAR(20),
+    IN linea_direccion1 VARCHAR(50),
+    IN linea_direccion2 VARCHAR(50)
+)
+BEGIN
+	DECLARE get_city_id INT;
+	
+	SET get_city_id = (SELECT def_get_city_id(ciudad, pais, region_nombre, codigo_postal));
+	
+    INSERT INTO office(
+   		office_id,
+   		office_phone_number,
+   		address_line_1,
+   		address_line_2,
+   		city_id
+   	) VALUES (
+   		codigo_oficina,
+   		telefono,
+   		linea_direccion1,
+   		linea_direccion2,
+   		get_city_id
+   	);
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR EMPLEADOS
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_empleado;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_empleado(
+	IN codigo_empleado INT,
+  	IN nombre VARCHAR(50),
+  	IN apellido1 VARCHAR(50),
+  	IN apellido2 VARCHAR(50),
+  	IN extension VARCHAR(10) ,
+  	IN email VARCHAR(100),
+  	IN codigo_oficina VARCHAR(10),
+  	IN codigo_jefe INT,
+  	IN puesto VARCHAR(50)
+)
+BEGIN
+	DECLARE get_rol_id INT;
+	
+	SELECT rol_id INTO get_rol_id FROM rol AS r WHERE r.rol_name = puesto;
+	
+	IF get_rol_id IS NULL THEN
+		INSERT INTO rol(
+			rol_name
+		) VALUES (
+			puesto
+		);
+		SET get_rol_id = LAST_INSERT_ID(); 
+	END IF;
+	
+    INSERT INTO employee (
+   		employee_id,
+	  	employee_first_name,
+	  	employee_last_name,
+	  	employee_first_surname,
+	  	employee_last_surname,
+	  	employee_extension,
+	  	employee_email,
+	  	boss_id,
+	  	rol_id,
+	  	office_id
+   	) VALUES (
+   		codigo_empleado,
+   		nombre,
+   		null,
+   		apellido1,
+   		apellido2,
+   		extension,
+   		email,
+   		codigo_jefe,
+   		get_rol_id,
+   		codigo_oficina
+   		
+   	);
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR LA GAMA DE LOS PRODUCTOS
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_gama_producto;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_gama_producto(
+	IN gama VARCHAR(50),
+  	IN descripcion_texto TEXT,
+  	IN descripcion_html TEXT,
+  	IN imagen VARCHAR(256)
+)
+BEGIN
+	
+    INSERT INTO gama_product(
+   		gama_product_id,
+   		description,
+   		description_html,
+   		image
+   	) VALUES (
+   		gama,
+   		descripcion_texto,
+   		descripcion_html,
+   		imagen
+   	);
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR CLIENTES 
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_cliente;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_cliente(
+	IN codigo_cliente INT,
+  	IN nombre_cliente VARCHAR(50),
+  	IN nombre_contacto VARCHAR(30),
+  	IN apellido_contacto VARCHAR(30),
+  	IN telefono VARCHAR(15),
+  	IN faxu VARCHAR(15),
+  	IN linea_direccion1 VARCHAR(50),
+  	IN linea_direccion2 VARCHAR(50),
+  	IN ciudad VARCHAR(50),
+  	IN region VARCHAR(50),
+  	IN pais VARCHAR(50),
+  	IN codigo_postal VARCHAR(10),
+  	IN codigo_empleado_rep_ventas INT ,
+  	IN limite_credito DECIMAL(15,2)
+)
+BEGIN
+	
+	DECLARE get_city_id INT;
+	declare get_customer_contant_id INT;
+
+	SET get_city_id = (SELECT def_get_city_id(ciudad, pais, region, codigo_postal));
+	
+  	INSERT INTO customer(
+   		customer_id,
+   		customer_name,
+   		credit_limit,
+   		employee_id
+   	) VALUES (
+   		codigo_cliente,
+   		nombre_cliente,
+   		limite_credito,
+   		codigo_empleado_rep_ventas
+   	);
+
+	INSERT INTO address (
+		address_line_1,
+		address_line_2,
+		city_id,
+		customer_id
+	) VALUES (
+		linea_direccion1,
+		linea_direccion2,
+		get_city_id,
+		codigo_cliente
+	);
+	
+	INSERT INTO customer_contact  (
+		cc_first_name,
+		cc_first_surname,
+		customer_id
+	) VALUES (
+		nombre_contacto ,
+		apellido_contacto,
+		codigo_cliente
+	);
+
+	SET get_customer_contant_id = LAST_INSERT_ID();
+
+	INSERT INTO phone_number  (
+		phone_number,
+		fax,
+		customer_contact_id
+	) VALUES (
+		telefono,
+		faxu,
+		get_customer_contant_id
+	);
+	
+  
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR PEDIDOS
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_pedido;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_pedido(
+	IN codigo_pedido INT,
+  	IN fecha_pedido DATE,
+  	IN fecha_esperada DATE,
+  	IN fecha_entrega  DATE,
+  	IN estado VARCHAR(15),
+  	IN comentarios TEXT,
+  	IN codigo_cliente INT
+)
+BEGIN
+	
+    INSERT INTO `order` (
+   		order_code,
+   		date_order,
+   		date_waiting,
+   		date_deliver,
+   		comments,
+   		status,
+   		customer_id
+   	) VALUES (
+   		codigo_pedido,
+   		fecha_pedido,
+   		fecha_esperada,
+   		fecha_entrega,
+   		comentarios,
+   		estado,
+   		codigo_cliente
+   	);
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR PRODUCTOS
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_producto;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_producto(
+    IN codigo_producto VARCHAR(15),
+    IN nombre VARCHAR(70),
+    IN gama VARCHAR(50),
+    IN dimensiones VARCHAR(25),
+    IN proveedor VARCHAR(50),
+    IN descripcion TEXT,
+    IN cantidad_en_stock SMALLINT,
+    IN precio_venta DECIMAL(15,2),
+    IN precio_proveedor DECIMAL(15,2)
+)
+BEGIN
+	DECLARE get_provider_id INT;
+	
+	SELECT provider_id INTO get_provider_id FROM provider AS p WHERE p.provider_id = 1;
+	
+	IF get_provider_id IS NULL THEN
+		INSERT INTO provider(
+			provider_id,
+			provider_name,
+			provider_surname
+		) VALUES (
+			1, 
+			'GARDEN LA PERLA',
+			NULL
+		);
+		SET get_provider_id = 1;
+	END IF;
+	
+	
+    INSERT INTO `product` (
+   		product_code,
+   		product_name,
+   		description,
+   		stock_amount,
+   		price_sell,
+   		gama
+   	) VALUES (
+   		codigo_producto,
+   		nombre,
+   		descripcion,
+   		cantidad_en_stock,
+   		precio_venta,
+   		gama
+   	);
+   
+   	INSERT INTO provider_product(
+			provider_id,
+			new_price,
+			old_price,
+			product_code
+		) VALUES (
+			get_provider_id, 
+			precio_proveedor,
+			NULL,
+			codigo_producto
+	);
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR DETALLES DEL PEDIDO
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_detalle_pedido;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_detalle_pedido(
+    IN codigo_pedido INT,
+    IN codigo_producto VARCHAR(15),
+    IN cantidad INT,
+    IN precio_unidad DECIMAL(15),
+    IN numero_linea SMALLINT 
+)
+BEGIN
+   
+   	INSERT INTO order_detail (
+			amount,
+			price_unit,
+			line_numer,
+			order_code,
+			product_code
+		) VALUES (
+			cantidad, 
+			precio_unidad,
+			numero_linea,
+			codigo_pedido,
+			codigo_producto
+	);
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO PARA AGREGAR MEDIOS DE PAGO
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_pago;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_pago(
+    IN codigo_cliente  INT,
+    IN forma_pago VARCHAR(40),
+    IN id_transaccion VARCHAR(50),
+    IN fecha_pago DATE,
+    IN total DECIMAL(15) 
+)
+BEGIN
+   
+   	INSERT INTO pay  (
+			id_transaction,
+			date_pay,
+			total,
+			method_pay,
+			customer_id
+		) VALUES (
+			id_transaccion, 
+			fecha_pago,
+			total,
+			forma_pago,
+			codigo_cliente
+	);
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO 
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS add_provider_new_data;
+
+DELIMITER $$
+
+CREATE PROCEDURE add_provider_new_data(
+    IN nombre VARCHAR(40),
+    IN apellido VARCHAR(40)
+)
+BEGIN
+   	DECLARE mensaje VARCHAR(100);
+   	DECLARE last_id INT;
+   
+   	SELECT MAX(p.provider_id) INTO last_id FROM provider AS p;
+   	
+   	IF last_id IS NULL THEN
+		SET last_id = 1;
+	ELSE
+		SET last_id = last_id + 1;
+	END IF;
+   
+   	INSERT INTO provider(
+   			provider_id,
+			provider_name,
+			provider_surname 
+		) VALUES (
+			last_id + 1,
+			nombre, 
+			apellido
+	);
+
+	IF ROW_COUNT() > 0 THEN
+		SET mensaje = 'Se actualizó el registro correctamente.';
+	ELSE
+		SET mensaje = 'No se encontró ningún registro para actualizar.';
+	END IF;
+
+	SELECT mensaje AS Resultado;
+
+END $$
+
+DELIMITER ;
+
+-- PROCEDIMIENTO 
+
+USE garden;
+
+DROP PROCEDURE IF EXISTS off_employee;
+
+DELIMITER $$
+
+CREATE PROCEDURE off_employee(
+	IN id INT
+)
+BEGIN
+   	DECLARE mensaje VARCHAR(100);
+   	
+   	UPDATE 
+   		employee 
+   	SET 
+   		actived = 0
+   	WHERE 
+   		employee_id = id;
+
+	IF ROW_COUNT() > 0 THEN
+		SET mensaje = 'Se actualizó el registro correctamente.';
+	ELSE
+		SET mensaje = 'No se encontró ningún registro para actualizar.';
+	END IF;
+
+	SELECT mensaje AS Resultado;
+
+END $$
+
+DELIMITER ;
+
+
+-- VISTA PARA FACILITAR LAS BUSQUEDAS DE LOS CLIENTES
+USE garden;
+
+DROP VIEW IF EXISTS customer_meta;
+
+CREATE VIEW customer_meta AS
+SELECT 
+	cu.customer_id AS 'cliente_id',
+	cu.customer_name AS 'cliente_nombre',
+	c.city_name AS 'ciudad',
+	pn.phone_number AS 'telefono',
+	a.address_line_1 AS 'direccion',
+	e.employee_first_name AS 'empleado_nombre'
+FROM 
+	customer AS cu
+INNER JOIN
+	address AS a ON a.customer_id = cu.customer_id
+INNER JOIN
+	city AS c ON c.city_id = a.city_id
+INNER JOIN
+	customer_contact AS cc ON cc.customer_id = cu.customer_id
+INNER JOIN
+	phone_number AS pn ON pn.customer_contact_id = cc.customer_contact_id
+INNER JOIN
+	employee AS e ON e.employee_id = cu.employee_id;
+	
+-- VISTA PARA FACILITAR LAS BUSQUEDAS DE LOS EMPLEADOS CON CLIENTES
+USE garden;
+
+DROP VIEW IF EXISTS employee_data;
+
+CREATE VIEW employee_data AS
+SELECT 
+	e.employee_first_name,
+	e.office_id,
+	c.customer_name
+FROM 
+	employee AS e
+LEFT JOIN
+	customer AS c ON c.employee_id = e.employee_id
+WHERE 
+	c.employee_id IS NULL 
+	OR 
+	c.employee_id IS NOT NULL
+	;
+	
+-- VISTA PARA PRODUCTOS NO COMPRADOS 
+USE garden;
+
+DROP VIEW IF EXISTS products_data;
+
+CREATE VIEW products_data AS
+SELECT DISTINCT 
+	p.product_name,
+	'Descripcion',
+	od.amount
+FROM 
+	product AS p
+LEFT JOIN
+	order_detail AS od ON od.product_code = p.product_code
+WHERE 
+	od.product_code IS NULL 
+	OR 
+	od.product_code IS NOT NULL
+	;
+
+-- EMPLEADOS POR PAIS 
+
+USE garden;
+
+DROP VIEW IF EXISTS employee_country;
+
+CREATE VIEW employee_country AS
+SELECT
+	co.country_name,
+	COUNT(c.customer_id) AS 'Total Clientes'
+FROM 
+	address AS a
+INNER JOIN
+	customer AS c ON c.customer_id = a.customer_id
+INNER JOIN 
+	city AS cy ON cy.city_id = a.city_id
+INNER JOIN 
+	region AS r ON r.region_id = cy.region_id
+INNER JOIN 
+	country AS co ON co.country_id = r.country_id 
+GROUP BY 
+	co.country_name;
+
+-- VISTA PARA CONTAR CLIENTES POR EMPLEADO
+USE garden;
+
+DROP VIEW IF EXISTS employee_customer_count;
+
+CREATE VIEW employee_customer_count AS
+SELECT
+	e.employee_first_name AS 'Empleado',
+	COUNT(c.customer_id) AS 'Clientes'
+FROM 
+	employee AS e
+INNER JOIN
+	customer AS c ON c.employee_id = e.employee_id
+GROUP BY 
+	e.employee_first_name;
+	
+-- VISTA PARA EMPLEADO CLIENTE N PEDIDOS Y OFFICINA 
+
+USE garden;
+
+DROP VIEW IF EXISTS product_info_sell;
+
+CREATE VIEW product_info_sell AS
+SELECT
+	e.employee_first_name,
+	e.employee_first_surname,
+	r.rol_name,
+	c.customer_name,
+	COUNT(p.id_transaction) AS 'N_Pagos',
+	o.office_id,
+	cy.city_name,
+	o.office_phone_number
+FROM 
+	employee AS e
+LEFT JOIN
+	customer AS c ON c.employee_id = e.employee_id
+LEFT JOIN 
+	pay AS p ON p.customer_id = c.customer_id 
+INNER JOIN 
+	office AS o ON o.office_id = e.office_id
+INNER JOIN 
+	city AS cy ON cy.city_id = o.city_id
+INNER JOIN 
+	rol AS r ON r.rol_id = e.rol_id
+WHERE 
+	(p.customer_id AND c.employee_id) IS NULL 
+	OR 
+	(p.customer_id AND c.employee_id )IS NOT NULL
+GROUP BY 
+	e.employee_first_name,
+	e.employee_first_surname,
+	r.rol_name,
+	c.customer_name,
+	o.office_id,
+	cy.city_name,
+	o.office_phone_number;
+	
+-- VISTA PARA VER STOCK CANTIDAD VENDIDAS DE PRODUCTOS
+USE garden;
+
+DROP VIEW IF EXISTS product_info_sell;
+
+CREATE VIEW product_info_sell AS
+SELECT
+	p.product_name,
+	p.price_sell,
+	COUNT(od.product_code) AS 'UV',
+	p.stock_amount
+FROM 
+	product AS p
+INNER JOIN
+	order_detail AS od ON od.product_code = p.product_code 
+	
+GROUP BY
+	p.product_name,
+	p.price_sell,
+	p.stock_amount;
+
+-- Vista Sin Clientes
+USE garden;
+
+DROP VIEW IF EXISTS employee_not_customers;
+
+CREATE VIEW employee_not_customers AS
+SELECT
+	CONCAT(e.employee_first_name, ' ',
+	e.employee_first_surname) AS Empleado,
+	r.rol_name AS rol
+FROM 
+	employee AS e
+INNER JOIN
+	rol AS r ON r.rol_id = e.rol_id 
+WHERE 
+	e.employee_id NOT IN(
+		SELECT 
+			c.employee_id
+		FROM 
+			customer AS c 
+	);
+	
+	
+-- Vista comprados
+USE garden;
+
+DROP VIEW IF EXISTS show_products_nots;
+
+CREATE VIEW show_products_nots AS
+SELECT DISTINCT
+    p.product_code,
+    p.product_name
+FROM
+    product AS p
+INNER JOIN
+    order_detail AS dp ON p.product_code = dp.product_code;
+    
+-- Vista No comprados
+USE garden;
+
+DROP VIEW IF EXISTS show_products_yes;
+
+CREATE VIEW show_products_yes AS
+SELECT DISTINCT
+    p.product_code,
+    p.product_name
+FROM
+    product AS p
+WHERE 
+	NOT EXISTS(
+		SELECT 1
+		FROM order_detail AS od
+		WHERE 
+			od.product_code = p.product_code
+	);
+	
+-- Vista para facilitar las busquedas
+USE garden;
+
+DROP VIEW IF EXISTS office_city_info;
+
+CREATE VIEW office_city_info AS
+SELECT 
+	o.office_id,
+	c.city_name,
+	o.office_phone_number,
+	country_name
+FROM 
+	office AS o
+INNER JOIN
+	city AS c ON c.city_id = o.city_id
+INNER JOIN
+	region AS r ON c.region_id = r.region_id
+INNER JOIN
+	country AS co ON co.country_id = r.country_id;
+
+
+
 USE garden;
 
 -- Datos
