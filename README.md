@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS `garden`.`gama_product` (
   PRIMARY KEY (`gama_product_id`))
 ENGINE = InnoDB;
 
-
 -- -----------------------------------------------------
 -- Table `garden`.`product`
 -- -----------------------------------------------------
